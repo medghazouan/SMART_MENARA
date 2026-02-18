@@ -32,4 +32,9 @@ class Superviseur extends Authenticatable
     {
         return $this->hasMany(Carriere::class, 'superviseur_id', 'matricule');
     }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class, 'superviseur_id', 'matricule');
+    }
 }

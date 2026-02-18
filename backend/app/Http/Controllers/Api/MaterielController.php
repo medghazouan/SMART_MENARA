@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreMaterielRequest;
 use App\Models\Materiel;
 use Illuminate\Http\Request;
 
@@ -33,15 +34,9 @@ class MaterielController extends Controller
     /**
      * Store a newly created materiel
      */
-    public function store(Request $request)
+    public function store(StoreMaterielRequest $request)
     {
-        $validated = $request->validate([
-            'matricule' => 'required|integer|unique:materiels,matricule',
-            'nom' => 'required|string|max:150',
-            'categorie' => 'required|string|max:100',
-            'carriere_id' => 'required|exists:carrieres,id',
-        ]);
-
+        $validated = $request->validated();
         $materiel = Materiel::create($validated);
 
         return response()->json([
@@ -107,8 +102,8 @@ class MaterielController extends Controller
         $materiel = Materiel::findOrFail($id);
         
         $totalPannes = $materiel->pannes()->count();
-        $pannesEnCours = $materiel->pannes()->where('status', 'En cours')->count();
-        $pannesResolues = $materiel->pannes()->where('status', 'Résolue')->count();
+        $pannesEnCours = $materiel->pannes()->where('status', 'en_cours')->count();
+        $pannesResolues = $materiel->pannes()->where('status', 'resolue')->count();
         
         // MTBF calculation (Mean Time Between Failures) - in days
         $mtbf = $materiel->pannes()

@@ -3,7 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StorePanneRequest;
+use App\Http\Requests\ResolvePanneRequest;
+use App\Http\Requests\StoreActionRequest;
 use App\Models\Panne;
+use App\Models\Action;
 use Illuminate\Http\Request;
 
 class PanneController extends Controller
@@ -12,17 +16,14 @@ class PanneController extends Controller
     {
         $query = Panne::with(['pointeur', 'carriere', 'materiel', 'actions']);
 
-        // Filter by carriere if provided
         if ($request->has('carriere_id')) {
             $query->where('carriere_id', $request->carriere_id);
         }
 
-        // Filter by status
         if ($request->has('status')) {
             $query->where('status', $request->status);
         }
 
-        // Filter by date range
         if ($request->has('date_from')) {
             $query->where('date_panne', '>=', $request->date_from);
         }
@@ -35,19 +36,10 @@ class PanneController extends Controller
         return response()->json($pannes);
     }
 
-    public function store(Request $request)
+    public function store(StorePanneRequest $request)
     {
-        $validated = $request->validate([
-            'zone' => 'required|string|max:100',
-            'type' => 'required|string|max:100',
-            'date_panne' => 'required|date',
-            'date_fin' => 'nullable|date|after_or_equal:date_panne',
-            'status' => 'required|in:En cours,Résolue,En attente',
-            'plan_action' => 'nullable|string',
-            'pointeur_id' => 'required|exists:pointeurs,matricule',
-            'carriere_id' => 'required|exists:carrieres,id',
-            'materiel_id' => 'required|exists:materiels,matricule',
-        ]);
+        $validated = $request->validated();
+        $validated['status'] = 'en_cours';
 
         $panne = Panne::create($validated);
 
@@ -72,7 +64,7 @@ class PanneController extends Controller
             'type' => 'sometimes|string|max:100',
             'date_panne' => 'sometimes|date',
             'date_fin' => 'nullable|date|after_or_equal:date_panne',
-            'status' => 'sometimes|in:En cours,Résolue,En attente',
+            'status' => 'sometimes|in:en_cours,resolue',
             'plan_action' => 'nullable|string',
             'materiel_id' => 'sometimes|exists:materiels,matricule',
         ]);
@@ -95,35 +87,49 @@ class PanneController extends Controller
         ]);
     }
 
-    // Get statistics for dashboard
-    public function statistics(Request $request)
+    public function resolve(ResolvePanneRequest $request, $id)
     {
-        $carriereId = $request->query('carriere_id');
-        
-        $query = Panne::query();
-        
-        if ($carriereId) {
-            $query->where('carriere_id', $carriereId);
+        $panne = Panne::findOrFail($id);
+
+        $user = $request->user();
+        if ($panne->pointeur_id !== $user->matricule) {
+            return response()->json([
+                'message' => 'Vous n\'êtes pas autorisé à résoudre cette panne.'
+            ], 403);
         }
 
-        $totalPannes = $query->count();
-        $pannesEnCours = $query->where('status', 'En cours')->count();
-        $pannesResolues = $query->where('status', 'Résolue')->count();
-        
-        // MTTR calculation (Mean Time To Repair) - in hours
-        $mttr = Panne::whereNotNull('date_fin')
-            ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, date_panne, date_fin)) as avg_time')
-            ->when($carriereId, function($q) use ($carriereId) {
-                return $q->where('carriere_id', $carriereId);
-            })
-            ->first()
-            ->avg_time ?? 0;
+        $validated = $request->validated();
+
+        $panne->update([
+            'status' => 'resolue',
+            'date_fin' => $validated['date_fin'],
+        ]);
 
         return response()->json([
-            'total_pannes' => $totalPannes,
-            'pannes_en_cours' => $pannesEnCours,
-            'pannes_resolues' => $pannesResolues,
-            'mttr_hours' => round($mttr, 2),
+            'message' => 'Panne résolue avec succès',
+            'panne' => $panne->load(['pointeur', 'carriere', 'materiel', 'actions'])
         ]);
+    }
+
+    public function panneActions($panneId)
+    {
+        $panne = Panne::findOrFail($panneId);
+        $actions = $panne->actions()->orderBy('date', 'desc')->get();
+        return response()->json($actions);
+    }
+
+    public function storePanneAction(StoreActionRequest $request, $panneId)
+    {
+        $panne = Panne::findOrFail($panneId);
+
+        $validated = $request->validated();
+
+        $validated['panne_id'] = $panne->id;
+        $action = Action::create($validated);
+
+        return response()->json([
+            'message' => 'Action enregistrée avec succès',
+            'action' => $action->load('panne')
+        ], 201);
     }
 }

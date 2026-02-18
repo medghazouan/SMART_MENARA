@@ -22,8 +22,8 @@ class Panne extends Model
     ];
 
     protected $casts = [
-        'date_panne' => 'date',
-        'date_fin' => 'date',
+        'date_panne' => 'datetime',
+        'date_fin' => 'datetime',
     ];
 
     public function pointeur()
@@ -44,5 +44,10 @@ class Panne extends Model
     public function actions()
     {
         return $this->hasMany(Action::class, 'panne_id');
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class, 'panne_id');
     }
 }

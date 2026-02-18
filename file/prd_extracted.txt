@@ -1,0 +1,678 @@
+SMART MENARA
+Product Requirements Document (PRD)
+Digitalisation du Reporting des Pannes
+Carrière Pilote : JBILAT
+Version
+2.0 — MVP
+Date
+18 Février 2026
+Sponsor
+MENARA HOLDING
+Chef de Projet
+Dounia HARACH
+Statut
+En cours de validation
+CONFIDENTIEL — MENARA HOLDING
+1. Introduction et Contexte
+1.1 Contexte du Projet
+La carrière JBILAT, exploitée par MENARA HOLDING, fonctionne actuellement avec un processus de reporting des pannes entièrement manuel et papier. Le superviseur (pointeur) sur site note sur papier l’ensemble des pannes survenues durant son poste, incluant la nature de la panne, les actions correctives entreprises et les dates. Ces fiches papier sont ensuite transmises au chef d’exploitation avec un retard moyen de 1 à 3 jours.
+Ce mode de fonctionnement s’inscrit dans un contexte plus large : le traitement de données industrielles de la carrière est entièrement manuel sous Excel, mobilisant un temps considérable de l’équipe d’ingénierie et retardant l’exploitation de l’information pour l’amélioration opérationnelle.
+1.2 Problèmes Identifiés
+Retards significatifs (1–3 jours) dans la transmission des informations de pannes au chef d’exploitation
+Perte fréquente de rapports papier et données incomplètes
+Incapacité à réagir rapidement face aux pannes critiques sur les équipements de concassage
+Aucune visibilité en temps réel sur l’état des équipements de la station
+Consolidation manuelle sous Excel : chronophage, source d’erreurs, et sans indicateurs de performance
+Absence totale de KPIs de maintenance (MTBF, MTTR) pour le pilotage
+1.3 Positionnement Stratégique
+Le projet SMART MENARA s’inscrit dans la phase 1 (court terme) de la transformation vers une Carrière 4.0 couvrant les 11 sites de MENARA HOLDING. La stratégie validée consiste à commencer par la fiabilisation des données via la digitalisation du reporting existant, avant de passer à la connexion capteurs (moyen terme) puis au temps réel et à la maintenance prédictive (long terme).
+La carrière de JBILAT a été désignée comme site pilote pour cette transformation.
+2. Objectifs du Produit
+2.1 Objectifs Principaux
+Digitaliser la saisie des pannes en remplaçant le support papier par une application web
+Fournir au chef d’exploitation un tableau de bord avec les indicateurs clés MTBF et MTTR, actualisé à chaque consultation
+Permettre la notification in-app dès qu’une panne est enregistrée, visible au prochain chargement du tableau de bord
+Éliminer les retards de communication entre le terrain et la direction d’exploitation
+2.2 Finalité Métier
+Libérer du temps d’ingénierie pour l’amélioration opérationnelle et préparer la transition vers une exploitation pilotée par la donnée. L’automatisation vise à valoriser les équipes (moins de saisie manuelle, plus d’analyse), et non à supprimer des postes.
+3. Périmètre du Produit
+3.1 Périmètre MVP (In Scope)
+Fonctionnalité
+Description
+Saisie des pannes
+Formulaire web permettant à l’agent de saisir : type de panne, équipement concerné (sélection ou ajout), zone, date de début, actions correctives, plan d’action et durée d’arrêt
+Tableau de bord Chef
+Vue des pannes en cours et historiques, indicateurs MTBF et MTTR calculés par équipement et par catégorie, filtres par équipement et zone. Données actualisées à chaque chargement de page
+Notifications in-app
+Badge de notification (icône cloche) visible sur le tableau de bord du chef, alimenté par une table notifications en base MySQL. Les nouvelles pannes apparaissent au prochain chargement de page
+Authentification
+Connexion sécurisée via Laravel Sanctum / session avec deux profils : Pointeur (saisie) et Superviseur (consultation)
+Gestion du matériel
+Équipements pré-chargés par l’administrateur avec possibilité pour les agents d’ajouter de nouveaux équipements
+Cycle de vie des pannes
+Workflow en deux états : En cours → Résolue. Seul l’agent (Pointeur) peut clôturer une panne
+3.2 Hors Périmètre MVP (Phases Futures)
+Phase Future
+Description
+Notifications email/SMS
+Alertes par email ou SMS au chef d’exploitation (via Laravel Notifications / Mailgun / Twilio)
+Temps réel (WebSocket)
+Mise à jour instantanée du tableau de bord via Laravel Broadcasting + Pusher ou Socket.io
+Reporting production
+Suivi des tonnes extraites, heures équipements, consommation gasoil
+Gestion budget
+Calcul instantané du budget et alerte journalière en cas de dépassement
+Multi-carrières
+Généralisation à 10 carrières supplémentaires avec rapport global consolidé
+Connexion capteurs
+Intégration avec automates, capteurs et systèmes GMAO/ERP
+Maintenance prédictive
+Algorithmes prédictifs basés sur l’historique des pannes et données capteurs
+Mode hors-ligne
+Sauvegarde locale avec synchronisation différée en cas de coupure réseau
+4. Utilisateurs et Rôles
+Rôle
+Profil Système
+Nombre
+Responsabilités
+Agent / Pointeur
+Pointeur
+1 (1 poste/jour)
+Saisie des pannes depuis le PC fixe sur site, avec date, description, équipement et actions correctives. Peut ajouter des équipements. Seul habilité à clore une panne.
+Chef d’Exploitation / Chef de Carrière
+Superviseur
+2
+Consultation du tableau de bord, suivi des KPIs (MTBF, MTTR), filtrage par équipement et zone, réception des notifications in-app.
+5. Exigences Fonctionnelles Détaillées
+5.1 Module Saisie des Pannes (Pointeur)
+5.1.1 Formulaire de Déclaration
+L’agent accède à un formulaire web depuis le PC fixe du site pour déclarer chaque panne survenue. Le formulaire est servi par une route Laravel et communique avec le backend via API REST. Les champs suivants sont requis :
+Champ
+Type
+Obligatoire
+Description
+Matériel
+Sélecteur (dropdown)
+Oui
+Sélection parmi les équipements existants ou ajout d’un nouvel équipement
+Zone
+Texte libre
+Oui
+Zone de la carrière où la panne a eu lieu
+Type de panne
+Texte libre
+Oui
+Nature de la panne (ex : coupure bande, cassure essieu, éclatement flexible)
+Date de début
+Date/heure
+Oui
+Horodatage du début de la panne
+Date de fin
+Date/heure
+Non
+Renseignée à la clôture de la panne
+Plan d’action
+Texte long
+Non
+Actions correctives envisagées ou en cours
+Statut
+Automatique
+Oui
+« En cours » par défaut à la création
+5.1.2 Exemples de Pannes Suivies
+Le système doit permettre le suivi de tous types de pannes de la station de concassage. Exemples concrets issus du terrain :
+Coupure du bande TR200
+Cassure des essieux du camion VOLVO 220
+Éclatement du flexible pelle CAT 349DL
+Rupture du blindage interne du broyeur
+Déséquilibrage du rotor après usure irrégulière des marteaux
+5.1.3 Actions Correctives
+Chaque panne peut recevoir une ou plusieurs actions correctives (entité Action). Chaque action est horodatée et décrit l’intervention réalisée. L’agent peut ajouter des actions au fil du temps tant que la panne n’est pas clôturée.
+5.1.4 Clôture de Panne
+Seul le Pointeur (agent) peut passer une panne du statut « En cours » à « Résolue ». La clôture requiert le renseignement de la date de fin. Le MTTR est alors calculé automatiquement (date_fin − date_panne).
+5.1.5 Mécanisme de Notification
+Lors de la création d’une panne, le backend Laravel insère automatiquement un enregistrement dans la table notifications en base MySQL, associé au profil Superviseur de la carrière concernée. Cette insertion est gérée par un Observer Laravel sur le modèle Panne.
+5.2 Module Tableau de Bord (Superviseur)
+5.2.1 Vue d’Ensemble
+Le tableau de bord offre au chef d’exploitation une vue synthétique de l’état de la maintenance de la carrière. Les données sont actualisées à chaque chargement de page via des requêtes API REST vers le backend Laravel. Une icône cloche affiche le nombre de notifications non lues.
+5.2.2 Indicateurs Affichés
+KPI
+Formule
+Granularité
+Période
+MTBF (Mean Time Between Failures)
+Temps total de fonctionnement / Nombre de pannes
+Par équipement + Par catégorie
+Depuis la mise en service (all-time)
+MTTR (Mean Time To Repair)
+Somme des durées de réparation / Nombre de pannes résolues
+Par équipement + Par catégorie
+Depuis la mise en service (all-time)
+Pannes en cours
+Comptage des pannes au statut « En cours »
+Global + Par équipement
+Temps réel (au chargement)
+Historique pannes
+Liste complète des pannes avec détail
+Par équipement
+All-time
+5.2.3 Filtres
+Le tableau de bord supporte les filtres suivants :
+Par équipement : sélection d’un équipement spécifique pour afficher ses KPIs et son historique
+Par zone : filtrage géographique par zone de la carrière
+5.3 Module Notifications In-App
+Le système utilise une table notifications en base MySQL pour stocker les alertes destinées au Superviseur. Lorsqu’une nouvelle panne est créée par un Pointeur, un Observer Laravel sur le modèle Panne insère automatiquement une notification en base. Côté frontend React, le composant du tableau de bord récupère les notifications non lues via l’API REST à chaque chargement de page et affiche un badge numérique sur l’icône cloche. Le chef peut marquer les notifications comme lues. Dans les phases futures, des notifications email pourront être ajoutées via le système Laravel Notifications.
+5.4 Module Gestion du Matériel
+Les équipements (matériel) sont pré-chargés dans le système par l’administrateur avant le go-live via un seeder Laravel ou une interface d’administration, avec les informations suivantes : matricule, nom, catégorie et carrière associée. Les agents (Pointeurs) peuvent également ajouter de nouveaux équipements directement depuis le formulaire de saisie si un équipement n’est pas encore référencé.
+6. Modèle de Données
+Le modèle de données repose sur 7 tables MySQL, correspondant aux 6 entités métier du diagramme UML de classes plus une table notifications. Les tables sont créées et gérées via les migrations Laravel (Eloquent ORM).
+6.1 Tables MySQL
+superviseurs
+Colonne
+Type MySQL
+Contrainte
+Description
+matricule
+INT UNSIGNED
+PRIMARY KEY
+Identifiant unique du superviseur
+nom
+VARCHAR(255)
+NOT NULL
+Nom complet
+email
+VARCHAR(255)
+UNIQUE, NOT NULL
+Adresse email (login)
+phone
+VARCHAR(50)
+NULL
+Numéro de téléphone
+password
+VARCHAR(255)
+NOT NULL
+Mot de passe hashé (bcrypt via Laravel)
+region
+VARCHAR(255)
+NULL
+Région géographique d’affectation
+created_at
+TIMESTAMP
+NULL
+Horodatage de création (Laravel)
+updated_at
+TIMESTAMP
+NULL
+Horodatage de mise à jour (Laravel)
+carrieres
+Colonne
+Type MySQL
+Contrainte
+Description
+id
+INT UNSIGNED
+PRIMARY KEY, AUTO_INCREMENT
+Identifiant unique
+nom
+VARCHAR(255)
+NOT NULL
+Nom de la carrière (ex : JBILAT)
+region
+VARCHAR(255)
+NULL
+Région géographique
+superviseur_id
+INT UNSIGNED
+FOREIGN KEY → superviseurs
+Superviseur responsable
+created_at
+TIMESTAMP
+NULL
+Horodatage de création
+updated_at
+TIMESTAMP
+NULL
+Horodatage de mise à jour
+pointeurs
+Colonne
+Type MySQL
+Contrainte
+Description
+matricule
+INT UNSIGNED
+PRIMARY KEY
+Identifiant unique du pointeur
+nom
+VARCHAR(255)
+NOT NULL
+Nom complet
+email
+VARCHAR(255)
+UNIQUE, NOT NULL
+Adresse email (login)
+phone
+VARCHAR(50)
+NULL
+Numéro de téléphone
+password
+VARCHAR(255)
+NOT NULL
+Mot de passe hashé (bcrypt via Laravel)
+carriere_id
+INT UNSIGNED
+FOREIGN KEY → carrieres
+Carrière d’affectation
+created_at
+TIMESTAMP
+NULL
+Horodatage de création
+updated_at
+TIMESTAMP
+NULL
+Horodatage de mise à jour
+materiels
+Colonne
+Type MySQL
+Contrainte
+Description
+matricule
+INT UNSIGNED
+PRIMARY KEY
+Identifiant unique de l’équipement
+nom
+VARCHAR(255)
+NOT NULL
+Nom (ex : Broyeur BK-500)
+categorie
+VARCHAR(255)
+NOT NULL
+Catégorie (Concasseur, Convoyeur, Engin)
+carriere_id
+INT UNSIGNED
+FOREIGN KEY → carrieres
+Carrière d’affectation
+created_at
+TIMESTAMP
+NULL
+Horodatage de création
+updated_at
+TIMESTAMP
+NULL
+Horodatage de mise à jour
+pannes
+Colonne
+Type MySQL
+Contrainte
+Description
+id
+INT UNSIGNED
+PRIMARY KEY, AUTO_INCREMENT
+Identifiant unique de la panne
+zone
+VARCHAR(255)
+NOT NULL
+Zone de la carrière concernée
+type
+VARCHAR(255)
+NOT NULL
+Nature de la panne
+date_panne
+DATETIME
+NOT NULL
+Date et heure de début
+date_fin
+DATETIME
+NULL
+Date et heure de résolution
+status
+ENUM('en_cours','resolue')
+NOT NULL, DEFAULT 'en_cours'
+Statut de la panne
+plan_action
+TEXT
+NULL
+Plan d’action / actions correctives
+pointeur_id
+INT UNSIGNED
+FOREIGN KEY → pointeurs
+Pointeur déclarant
+carriere_id
+INT UNSIGNED
+FOREIGN KEY → carrieres
+Carrière concernée
+materiel_id
+INT UNSIGNED
+FOREIGN KEY → materiels
+Matériel concerné
+created_at
+TIMESTAMP
+NULL
+Horodatage de création
+updated_at
+TIMESTAMP
+NULL
+Horodatage de mise à jour
+actions
+Colonne
+Type MySQL
+Contrainte
+Description
+id
+INT UNSIGNED
+PRIMARY KEY, AUTO_INCREMENT
+Identifiant unique
+date
+DATETIME
+NOT NULL
+Date de l’intervention
+intervention
+TEXT
+NOT NULL
+Description de l’intervention
+panne_id
+INT UNSIGNED
+FOREIGN KEY → pannes
+Panne associée
+created_at
+TIMESTAMP
+NULL
+Horodatage de création
+updated_at
+TIMESTAMP
+NULL
+Horodatage de mise à jour
+notifications
+Colonne
+Type MySQL
+Contrainte
+Description
+id
+INT UNSIGNED
+PRIMARY KEY, AUTO_INCREMENT
+Identifiant unique
+superviseur_id
+INT UNSIGNED
+FOREIGN KEY → superviseurs
+Superviseur destinataire
+panne_id
+INT UNSIGNED
+FOREIGN KEY → pannes
+Panne déclenchante
+message
+VARCHAR(500)
+NOT NULL
+Texte de la notification
+is_read
+BOOLEAN
+NOT NULL, DEFAULT FALSE
+Indicateur de lecture
+created_at
+TIMESTAMP
+NULL
+Horodatage de création
+updated_at
+TIMESTAMP
+NULL
+Horodatage de mise à jour
+6.2 Relations (Eloquent)
+Superviseur hasMany Carriere(s)
+Carriere belongsTo Superviseur
+Carriere hasMany Pointeur(s)
+Carriere hasMany Materiel(s)
+Pointeur belongsTo Carriere
+Pointeur hasMany Panne(s)
+Materiel belongsTo Carriere
+Materiel hasMany Panne(s)
+Panne belongsTo Pointeur, Carriere, Materiel
+Panne hasMany Action(s)
+Action belongsTo Panne
+Notification belongsTo Superviseur, Panne
+7. Architecture Technique
+7.1 Stack Technologique
+Couche
+Technologie
+Justification
+Frontend
+React
+Framework moderne, large écosystème de composants, communication via API REST avec le backend Laravel
+Backend
+Laravel (PHP 8.x)
+Framework PHP mature, Eloquent ORM pour MySQL, système de migrations, observers, middleware d’authentification, écosystème riche
+Base de données
+MySQL 8.x
+Base de données relationnelle robuste, support complet SQL pour les calculs MTBF/MTTR, large adoption en entreprise
+Authentification
+Laravel Sanctum
+Authentification par token SPA, gestion native des sessions, intégrée à Laravel
+API
+REST (Laravel Routes)
+API RESTful standard pour la communication frontend-backend, contrôleurs ressource Laravel
+Notifications
+Table MySQL + Observer Laravel
+Observer sur le modèle Panne crée automatiquement une notification en base. Récupération via API au chargement de page
+7.2 Architecture Applicative
+L’application suit une architecture classique SPA + API REST :
+Frontend React : Single Page Application communiquant avec le backend via des appels API REST (Axios/Fetch). Gère le rendu du formulaire de saisie et du tableau de bord.
+Backend Laravel : Expose une API RESTful (routes/api.php). Contrôleurs ressource pour chaque entité (PanneController, MaterielController, NotificationController, etc.). Eloquent ORM pour l’accès MySQL.
+Observers Laravel : Un PanneObserver déclenche la création automatique d’une notification dans la table notifications lors de chaque création de panne.
+Middleware : Laravel Sanctum protège les routes API. Un middleware vérifie le rôle (Pointeur vs Superviseur) pour restreindre l’accès.
+7.3 Contraintes Techniques
+Contrainte
+Détail
+Connexion Internet
+Pas de Wi-Fi disponible sur site. Connexion uniquement par câble Ethernet sur le PC fixe
+Infrastructure existante
+Aucun logiciel ou ERP de maintenance en place. Reporting actuel entièrement sous Excel
+Langue
+Interface entièrement en français
+Plateforme
+Application web accessible depuis un navigateur sur PC fixe (pas de mobile requis pour le MVP)
+Mode hors-ligne
+Non requis pour le MVP (connexion Ethernet considérée suffisamment stable)
+Budget MVP
+Non défini (quick win). Budget pour les phases suivantes sera défini après validation du MVP
+7.4 Sécurité
+Authentification par email/mot de passe via Laravel Sanctum (token SPA)
+Mots de passe hashés avec bcrypt (natif Laravel)
+Protection CSRF intégrée Laravel
+Middleware de rôle pour isoler les accès Pointeur vs Superviseur
+Validation des données côté backend via Form Requests Laravel
+8. Endpoints API REST
+Liste des principaux endpoints exposés par le backend Laravel :
+Authentification
+Méthode
+Endpoint
+Description
+Rôle
+POST
+/api/login
+Connexion et obtention du token Sanctum
+Tous
+POST
+/api/logout
+Déconnexion et révocation du token
+Tous
+Pannes
+Méthode
+Endpoint
+Description
+Rôle
+GET
+/api/pannes
+Liste des pannes (avec filtres zone, materiel_id)
+Superviseur
+POST
+/api/pannes
+Créer une nouvelle panne (déclenche notification)
+Pointeur
+GET
+/api/pannes/{id}
+Détail d’une panne
+Tous
+PUT
+/api/pannes/{id}/resolve
+Clôturer une panne (statut → Résolue)
+Pointeur
+Actions
+Méthode
+Endpoint
+Description
+Rôle
+GET
+/api/pannes/{id}/actions
+Liste des actions d’une panne
+Tous
+POST
+/api/pannes/{id}/actions
+Ajouter une action corrective
+Pointeur
+Matériel
+Méthode
+Endpoint
+Description
+Rôle
+GET
+/api/materiels
+Liste des équipements
+Tous
+POST
+/api/materiels
+Ajouter un équipement
+Pointeur
+Tableau de Bord & KPIs
+Méthode
+Endpoint
+Description
+Rôle
+GET
+/api/dashboard/stats
+KPIs globaux : pannes en cours, MTBF, MTTR
+Superviseur
+GET
+/api/dashboard/stats?materiel_id=X
+KPIs filtrés par équipement
+Superviseur
+GET
+/api/dashboard/stats?zone=X
+KPIs filtrés par zone
+Superviseur
+Notifications
+Méthode
+Endpoint
+Description
+Rôle
+GET
+/api/notifications
+Liste des notifications non lues
+Superviseur
+PUT
+/api/notifications/{id}/read
+Marquer une notification comme lue
+Superviseur
+PUT
+/api/notifications/read-all
+Marquer toutes les notifications comme lues
+Superviseur
+9. Planning MVP
+Jour
+Date
+Livrables
+Jour 1
+18 Février 2026
+Setup projet Laravel (composer create-project), configuration MySQL, création des 7 migrations Eloquent, modèles et relations, Laravel Sanctum, seeder pour données matériel. Développement du formulaire de saisie React + API pannes
+Jour 2
+19 Février 2026
+Tableau de bord React, endpoints KPIs (MTBF/MTTR via requêtes SQL), PanneObserver pour notifications, composant cloche/badge React, filtres équipement et zone
+Jour 3
+20 Février 2026
+Tests fonctionnels complets, corrections de bugs, seeding des données matériel JBILAT, Go-Live
+10. Équipe Projet
+Membre
+Rôle
+Responsabilité
+Dounia HARACH
+Chef de Projet
+Coordination, planification, validation, relation avec le sponsor
+Oussama ELMASOUDI
+Développeur Backend
+API Laravel, schéma MySQL (migrations), modèles Eloquent, observers, logique métier
+Mohamed GHAZOUAN
+Développeur Backend
+Endpoints KPIs, système de notifications, Laravel Sanctum, Form Requests
+Oussama TOUKBANI
+Développeur Frontend
+Interface React, tableau de bord, formulaire de saisie, composant notifications
+Youssef NAOUI
+Équipe Ops
+support technique
+11. Critères de Succès
+#
+Critère
+Cible
+1
+Visibilité des pannes
+Le chef voit chaque nouvelle panne dès qu’il charge ou rafraîchit le tableau de bord
+2
+Zéro rapport papier
+100% des pannes saisies via l’application dès la première semaine d’utilisation
+3
+KPIs disponibles
+MTBF et MTTR calculés automatiquement par équipement et par catégorie, affichés sur le tableau de bord
+4
+Notification in-app
+Le chef voit un badge de notification pour chaque nouvelle panne non lue
+12. Risques Identifiés
+Risque
+Probabilité
+Impact
+Mitigation
+Instabilité de la connexion câble Ethernet
+Moyenne
+Élevé
+Monitorer la connexion. Prévoir un mécanisme de sauvegarde locale dans une phase future.
+Délai de 3 jours trop court pour le MVP
+Moyenne
+Élevé
+Périmètre MVP strictement limité aux fonctionnalités essentielles. Priorisation agile.
+Résistance au changement des utilisateurs terrain
+Faible
+Moyen
+Formation dédiée le Jour 3, interface simple et intuitive en français.
+Coupure électrique sur site (arrêt total carrière)
+Moyenne
+Faible
+Risque métier existant. Les pannes sont saisies a posteriori après rétablissement.
+Données matériel incomplètes au go-live
+Moyenne
+Moyen
+Seeder Laravel pour les données initiales + possibilité pour les agents d’ajouter des équipements.
+Performance des requêtes MTBF/MTTR sur volume croissant
+Faible
+Faible
+Index MySQL sur les colonnes materiel_id, status, date_panne. Optimisation SQL si nécessaire.
+13. Feuille de Route Post-MVP
+Le MVP de SMART MENARA constitue la première étape d’une transformation progressive vers une Carrière 4.0. Les phases suivantes s’inscrivent dans la stratégie validée lors de la réunion de cadrage :
+Phase
+Horizon
+Contenu
+Phase 1 (MVP)
+Février 2026
+Digitalisation reporting pannes — carrière JBILAT (présent document). Stack : Laravel + MySQL + React
+Phase 2
+Court terme
+Notifications email (Laravel Notifications), reporting production (tonnes, heures, gasoil), gestion budget, temps réel via Laravel Broadcasting
+Phase 3
+Moyen terme
+Déploiement multi-carrières (11 sites), connexion automates et capteurs, intégration GMAO/ERP
+Phase 4
+Long terme
+Temps réel complet, maintenance prédictive, optimisation de production pilotée par l’IA
+14. Approbations
+Ce document constitue le Product Requirements Document (PRD) formel du projet SMART MENARA dans le cadre du MVP pour la carrière Jbilat.
+Nom
+Rôle
+Signature / Date
+Sponsor — MENARA HOLDING
+Dounia HARACH
+Chef de Projet
+Responsable Technique
