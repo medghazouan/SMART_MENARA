@@ -12,28 +12,36 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function login(LoginRequest $request)
+    public function login(Request $request)
     {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required',
+        ]);
 
+        // Try Superviseur first
         $superviseur = Superviseur::where('email', $request->email)->first();
+        
         if ($superviseur && Hash::check($request->password, $superviseur->password)) {
-            $token = $superviseur->createToken('superviseur-token')->plainTextToken;
-
+            $token = $superviseur->createToken('auth-token')->plainTextToken;
+            
             return response()->json([
                 'user' => $superviseur,
                 'token' => $token,
-                'type' => 'superviseur',
+                'type' => 'superviseur'
             ]);
         }
 
+        // Try Pointeur
         $pointeur = Pointeur::where('email', $request->email)->first();
+        
         if ($pointeur && Hash::check($request->password, $pointeur->password)) {
-            $token = $pointeur->createToken('pointeur-token')->plainTextToken;
-
+            $token = $pointeur->createToken('auth-token')->plainTextToken;
+            
             return response()->json([
                 'user' => $pointeur,
                 'token' => $token,
-                'type' => 'pointeur',
+                'type' => 'pointeur'
             ]);
         }
 

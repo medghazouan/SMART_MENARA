@@ -18,6 +18,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
+    Route::get('/pannes', [PanneController::class, 'index']);
 
     Route::get('/materiels', [MaterielController::class, 'index']);
     Route::get('/materiels/{id}', [MaterielController::class, 'show']);
@@ -37,7 +38,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Superviseur-only ──────────────────────────────────────
     Route::middleware('superviseur')->group(function () {
-        Route::get('/pannes', [PanneController::class, 'index']);
         Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
 
         Route::get('/notifications', [NotificationController::class, 'index']);
