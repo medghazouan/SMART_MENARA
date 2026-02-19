@@ -8,6 +8,15 @@ use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
+    public function count(Request $request)
+    {
+        $count = Notification::where('superviseur_id', $request->user()->matricule)
+            ->where('is_read', false)
+            ->count();
+
+        return response()->json(['unread_count' => $count]);
+    }
+
     public function index(Request $request)
     {
         $notifications = Notification::where('superviseur_id', $request->user()->matricule)

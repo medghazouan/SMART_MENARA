@@ -14,11 +14,35 @@ class PanneController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Panne::with(['pointeur', 'carriere', 'materiel', 'actions']);
+        $carriereIds = $request->user()->carrieres()->pluck('id');
+
+        $query = Panne::with(['pointeur', 'carriere', 'materiel', 'actions'])
+            ->whereIn('carriere_id', $carriereIds);
 
         if ($request->has('carriere_id')) {
             $query->where('carriere_id', $request->carriere_id);
         }
+
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->has('date_from')) {
+            $query->where('date_panne', '>=', $request->date_from);
+        }
+        if ($request->has('date_to')) {
+            $query->where('date_panne', '<=', $request->date_to);
+        }
+
+        $pannes = $query->orderBy('date_panne', 'desc')->paginate(20);
+
+        return response()->json($pannes);
+    }
+
+    public function myPannes(Request $request)
+    {
+        $query = Panne::with(['carriere', 'materiel', 'actions'])
+            ->where('pointeur_id', $request->user()->matricule);
 
         if ($request->has('status')) {
             $query->where('status', $request->status);

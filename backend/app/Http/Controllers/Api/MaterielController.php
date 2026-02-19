@@ -65,13 +65,26 @@ class MaterielController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $carriereIds = $request->user()->carrieres()->pluck('id')->toArray();
         $materiel = Materiel::findOrFail($id);
+
+        if (!in_array($materiel->carriere_id, $carriereIds)) {
+            return response()->json([
+                'message' => 'Ce matériel ne fait pas partie de vos carrières.'
+            ], 403);
+        }
 
         $validated = $request->validate([
             'nom' => 'sometimes|string|max:150',
             'categorie' => 'sometimes|string|max:100',
             'carriere_id' => 'sometimes|exists:carrieres,id',
         ]);
+
+        if (isset($validated['carriere_id']) && !in_array((int) $validated['carriere_id'], $carriereIds)) {
+            return response()->json([
+                'message' => 'Cette carrière ne vous appartient pas.'
+            ], 403);
+        }
 
         $materiel->update($validated);
 
@@ -81,12 +94,17 @@ class MaterielController extends Controller
         ]);
     }
 
-    /**
-     * Remove the specified materiel
-     */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
+        $carriereIds = $request->user()->carrieres()->pluck('id')->toArray();
         $materiel = Materiel::findOrFail($id);
+
+        if (!in_array($materiel->carriere_id, $carriereIds)) {
+            return response()->json([
+                'message' => 'Ce matériel ne fait pas partie de vos carrières.'
+            ], 403);
+        }
+
         $materiel->delete();
 
         return response()->json([

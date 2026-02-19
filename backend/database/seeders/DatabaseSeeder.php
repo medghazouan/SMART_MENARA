@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
     {
         // ── Superviseurs ──────────────────────────────────────
         $sup1 = Superviseur::create([
-            'matricule' => 1001,
+            'matricule' => 1009,
             'nom' => 'Ahmed Benali',
             'email' => 'ahmed.benali@menara.ma',
             'phone' => '+212600000001',
@@ -51,7 +51,7 @@ class DatabaseSeeder extends Seeder
 
         // ── Pointeurs ─────────────────────────────────────────
         $pointeur1 = Pointeur::create([
-            'matricule' => 2001,
+            'matricule' => 2009,
             'nom' => 'Mohamed El Amrani',
             'email' => 'mohamed.amrani@menara.ma',
             'phone' => '+212600000002',
@@ -70,7 +70,7 @@ class DatabaseSeeder extends Seeder
 
         // ── Matériels ─────────────────────────────────────────
         $mat1 = Materiel::create([
-            'matricule' => 3001,
+            'matricule' => 3009,
             'nom' => 'Bande TR200',
             'categorie' => 'Convoyeur',
             'carriere_id' => $carriereJbilat->id,

@@ -6,18 +6,24 @@ use App\Http\Controllers\Controller;
 use App\Models\Panne;
 use App\Models\Materiel;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function stats(Request $request)
     {
+        $carriereIds = $request->user()->carrieres()->pluck('id');
+
         $materielId = $request->query('materiel_id');
         $zone = $request->query('zone');
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
 
         $baseQuery = Panne::query()
+            ->whereIn('carriere_id', $carriereIds)
             ->when($materielId, fn ($q) => $q->where('materiel_id', $materielId))
-            ->when($zone, fn ($q) => $q->where('zone', $zone));
+            ->when($zone, fn ($q) => $q->where('zone', $zone))
+            ->when($dateFrom, fn ($q) => $q->where('date_panne', '>=', $dateFrom))
+            ->when($dateTo, fn ($q) => $q->where('date_panne', '<=', $dateTo));
 
         $pannesEnCours = (clone $baseQuery)->where('status', 'en_cours')->count();
         $pannesResolues = (clone $baseQuery)->where('status', 'resolue')->count();
@@ -29,7 +35,7 @@ class DashboardController extends Controller
             ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, date_panne, date_fin)) as avg_repair')
             ->value('avg_repair') ?? 0;
 
-        $mtbfHours = $this->calculateMtbf($materielId, $zone);
+        $mtbfHours = $this->calculateMtbf($carriereIds, $materielId, $zone);
 
         return response()->json([
             'pannes_en_cours' => $pannesEnCours,
@@ -40,13 +46,17 @@ class DashboardController extends Controller
         ]);
     }
 
-    private function calculateMtbf(?string $materielId, ?string $zone): float
+    private function calculateMtbf($carriereIds, ?string $materielId, ?string $zone): float
     {
         $query = Materiel::query()
+            ->whereIn('carriere_id', $carriereIds)
             ->when($materielId, fn ($q) => $q->where('matricule', $materielId));
 
         if ($zone) {
-            $panneMateriels = Panne::where('zone', $zone)->pluck('materiel_id')->unique();
+            $panneMateriels = Panne::where('zone', $zone)
+                ->whereIn('carriere_id', $carriereIds)
+                ->pluck('materiel_id')
+                ->unique();
             $query->whereIn('matricule', $panneMateriels);
         }
 
