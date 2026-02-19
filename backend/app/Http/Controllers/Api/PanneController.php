@@ -27,6 +27,10 @@ class PanneController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->has('pointeur_id')) {
+            $query->where('pointeur_id', $request->pointeur_id);
+        }
+
         if ($request->has('date_from')) {
             $query->where('date_panne', '>=', $request->date_from);
         }
