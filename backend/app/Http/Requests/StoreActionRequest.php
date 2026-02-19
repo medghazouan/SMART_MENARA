@@ -13,10 +13,16 @@ class StoreActionRequest extends FormRequest
 
     public function rules(): array
     {
+        $panneIdRule = $this->route('panne')
+            ? 'sometimes|exists:pannes,id'
+            : 'required|exists:pannes,id';
+
         return [
             'date' => 'required|date',
+            'type' => 'sometimes|string|in:Corrective,Preventive,Maintenance',
             'intervention' => 'required|string',
-            'panne_id' => 'sometimes|exists:pannes,id',
+            'temps_estime' => 'sometimes|nullable|numeric|min:0',
+            'panne_id' => $panneIdRule,
         ];
     }
 }

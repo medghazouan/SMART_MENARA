@@ -7,7 +7,13 @@ export const actionsAPI = {
   },
 
   create: async (panneId, data) => {
-    const response = await axiosInstance.post(`/pannes/${panneId}/actions`, data);
+    const payload = {
+      date: data.date_action || data.date,
+      intervention: data.description || data.intervention,
+      type: data.type || 'Corrective',
+      temps_estime: data.temps_estime || null,
+    };
+    const response = await axiosInstance.post(`/pannes/${panneId}/actions`, payload);
     return response.data;
   },
 

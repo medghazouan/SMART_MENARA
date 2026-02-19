@@ -19,22 +19,22 @@ class PanneController extends Controller
         $query = Panne::with(['pointeur', 'carriere', 'materiel', 'actions'])
             ->whereIn('carriere_id', $carriereIds);
 
-        if ($request->has('carriere_id')) {
+        if ($request->filled('carriere_id')) {
             $query->where('carriere_id', $request->carriere_id);
         }
 
-        if ($request->has('status')) {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        if ($request->has('pointeur_id')) {
+        if ($request->filled('pointeur_id')) {
             $query->where('pointeur_id', $request->pointeur_id);
         }
 
-        if ($request->has('date_from')) {
+        if ($request->filled('date_from')) {
             $query->where('date_panne', '>=', $request->date_from);
         }
-        if ($request->has('date_to')) {
+        if ($request->filled('date_to')) {
             $query->where('date_panne', '<=', $request->date_to);
         }
 
@@ -48,14 +48,14 @@ class PanneController extends Controller
         $query = Panne::with(['carriere', 'materiel', 'actions'])
             ->where('pointeur_id', $request->user()->matricule);
 
-        if ($request->has('status')) {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        if ($request->has('date_from')) {
+        if ($request->filled('date_from')) {
             $query->where('date_panne', '>=', $request->date_from);
         }
-        if ($request->has('date_to')) {
+        if ($request->filled('date_to')) {
             $query->where('date_panne', '<=', $request->date_to);
         }
 
@@ -120,7 +120,7 @@ class PanneController extends Controller
         $panne = Panne::findOrFail($id);
 
         $user = $request->user();
-        if ($panne->pointeur_id !== $user->matricule) {
+        if ((int) $panne->pointeur_id !== (int) $user->matricule) {
             return response()->json([
                 'message' => 'Vous n\'êtes pas autorisé à résoudre cette panne.'
             ], 403);

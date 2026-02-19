@@ -11,12 +11,15 @@ class Action extends Model
 
     protected $fillable = [
         'date',
+        'type',
         'intervention',
+        'temps_estime',
         'panne_id',
     ];
 
     protected $casts = [
         'date' => 'date',
+        'temps_estime' => 'float',
     ];
 
     public function panne()

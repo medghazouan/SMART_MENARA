@@ -283,8 +283,12 @@ export default function PointeurPanneDetailPage() {
                     <div key={action.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <p className="font-medium text-sm text-gray-900">{action.type}</p>
-                          <p className="text-xs text-gray-500 mt-1">{format(new Date(action.date_action), 'dd/MM/yyyy HH:mm')}</p>
+                          <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-700 mb-1">
+                            {action.type || 'Corrective'}
+                          </span>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {action.date ? format(new Date(action.date), 'dd/MM/yyyy HH:mm') : '—'}
+                          </p>
                         </div>
                         <button
                           onClick={() => handleDeleteAction(action.id)}
@@ -293,7 +297,7 @@ export default function PointeurPanneDetailPage() {
                           Supprimer
                         </button>
                       </div>
-                      <p className="text-sm text-gray-700 mt-2">{action.description}</p>
+                      <p className="text-sm text-gray-700 mt-2">{action.intervention}</p>
                       {action.temps_estime && (
                         <p className="text-xs text-gray-500 mt-2">Temps estimé: {action.temps_estime}h</p>
                       )}
