@@ -1,39 +1,105 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { dashboardAPI } from '../../api/pannes.api';
+import { dashboardAPI, pannesAPI } from '../../api/pannes.api';
+import KPICard from '../../components/shared/KPICard';
+import PannesTable from '../../components/shared/PannesTable';
+import FilterBar from '../../components/shared/FilterBar';
+import NotificationBell from '../../components/shared/NotificationBell';
 
 export default function SuperviseurDashboard() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [pannes, setPannes] = useState([]);
+  const [selectedPanne, setSelectedPanne] = useState(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [isLoadingPannes, setIsLoadingPannes] = useState(false);
+  const [filters, setFilters] = useState({});
+  const [zones, setZones] = useState([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
-    loadStats();
+    loadInitialData();
   }, []);
 
-  const loadStats = async () => {
+  useEffect(() => {
+    loadPannes();
+  }, [filters]);
+
+  const loadInitialData = async () => {
     try {
-      const data = await dashboardAPI.getStats();
-      setStats(data);
+      // Load stats
+      const statsData = await dashboardAPI.getStats();
+      setStats(statsData);
+
+      // Load pannes to extract unique zones
+      const pannesResponse = await pannesAPI.getAll();
+      // Handle paginated response { data: [...], ... }
+      const pannesArray = Array.isArray(pannesResponse) ? pannesResponse : pannesResponse?.data || [];
+      
+      // Extract unique zones
+      const uniqueZones = [...new Set(pannesArray.map((p) => p.zone).filter(Boolean))];
+      setZones(uniqueZones);
+
+      setPannes(pannesArray);
+      console.log('Initial pannes loaded:', pannesArray);
     } catch (error) {
-      console.error('Error loading stats:', error);
+      console.error('Error loading initial data:', error);
     } finally {
-      setIsLoading(false);
+      setIsLoadingStats(false);
     }
+  };
+
+  const loadPannes = async () => {
+    setIsLoadingPannes(true);
+    try {
+      const response = await pannesAPI.getAll(filters);
+      // Handle paginated response { data: [...], ... }
+      const pannesArray = Array.isArray(response) ? response : response?.data || [];
+      setPannes(pannesArray);
+    } catch (error) {
+      console.error('Error loading pannes:', error);
+    } finally {
+      setIsLoadingPannes(false);
+    }
+  };
+
+  const handleRowClick = (panne) => {
+    setSelectedPanne(panne);
+    navigate(`/superviseur/pannes/${panne.id}`);
+  };
+
+  const calculateMTBF = (total, resolved) => {
+    if (resolved === 0) return 0;
+    return (total / resolved).toFixed(1);
+  };
+
+  const calculateDowntimePercentage = () => {
+    if (!stats?.total_pannes || stats.total_pannes === 0) return 0;
+    // Assuming average downtime is around 4-5 hours per incident
+    const avgDowntime = 4.5;
+    const totalDowntime = stats.pannes_en_cours * avgDowntime;
+    const percentage = (totalDowntime / (24 * 7)) * 100;
+    return percentage.toFixed(1);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <nav className="bg-white shadow-sm">
+      <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
-            <h1 className="text-xl font-bold">SMART MENARA - Superviseur</h1>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700">{user?.nom}</span>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">SMART MENARA - Superviseur</h1>
+              <p className="text-xs text-gray-500 mt-0.5">Carrière Aïn Defla</p>
+            </div>
+            <div className="flex items-center space-x-6">
+              <NotificationBell onNotificationChange={setUnreadNotifications} />
+              <div className="text-sm text-gray-700 border-r pr-6">{user?.nom}</div>
               <button
                 onClick={logout}
-                className="px-4 py-2 text-sm border rounded hover:bg-gray-50"
+                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Déconnexion
               </button>
@@ -44,43 +110,182 @@ export default function SuperviseurDashboard() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h2 className="text-2xl font-bold mb-6">Tableau de Bord</h2>
+        {/* Page Title */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900">Tableau de Bord</h2>
+          <p className="text-sm text-gray-500 mt-1">Vue globale des pannes et performances</p>
+        </div>
 
-        {isLoading ? (
-          <div className="text-center py-12">Chargement...</div>
+        {/* KPI Cards */}
+        {isLoadingStats ? (
+          <div className="text-center py-12 text-gray-500">Chargement des métriques...</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* Total Pannes */}
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="text-sm text-gray-500 mb-2">Total Pannes</div>
-              <div className="text-3xl font-bold text-gray-900">
-                {stats?.total_pannes || 0}
-              </div>
+          <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+              {/* MTBF */}
+              <KPICard
+                label="MTBF"
+                value={calculateMTBF(stats?.total_pannes || 0, stats?.pannes_resolues || 1)}
+                unit="h"
+                color="text-blue-600"
+                bgColor="bg-blue-50"
+                subtext="Moy. entre pannes"
+              />
+
+              {/* MTTR */}
+              <KPICard
+                label="MTTR"
+                value={(stats?.mttr_hours || 0).toFixed(1)}
+                unit="h"
+                color="text-green-600"
+                bgColor="bg-green-50"
+                subtext="Temps moyen réparation"
+              />
+
+              {/* En Cours */}
+              <KPICard
+                label="En Cours"
+                value={stats?.pannes_en_cours || 0}
+                color="text-orange-600"
+                bgColor="bg-orange-50"
+                subtext="Pannes actives"
+              />
+
+              {/* Aujourd'hui */}
+              <KPICard
+                label="Aujourd'hui"
+                value={stats?.pannes_en_cours || 0}
+                color="text-purple-600"
+                bgColor="bg-purple-50"
+                subtext="Déclarées aujourd'hui"
+              />
+
+              {/* Indisponibilité */}
+              <KPICard
+                label="Indisponibilité"
+                value={calculateDowntimePercentage()}
+                unit="%"
+                color="text-red-600"
+                bgColor="bg-red-50"
+                subtext="Cette semaine"
+              />
+
+              {/* Total Pannes */}
+              <KPICard
+                label="Total"
+                value={stats?.total_pannes || 0}
+                color="text-gray-700"
+                bgColor="bg-gray-50"
+                subtext="Tous les temps"
+              />
             </div>
 
-            {/* En Cours */}
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="text-sm text-gray-500 mb-2">En Cours</div>
-              <div className="text-3xl font-bold text-orange-600">
-                {stats?.pannes_en_cours || 0}
-              </div>
-            </div>
+            {/* Filters */}
+            <FilterBar
+              filters={filters}
+              zones={zones}
+              onFilterChange={(newFilters) => setFilters(newFilters)}
+            />
 
-            {/* Résolues */}
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="text-sm text-gray-500 mb-2">Résolues</div>
-              <div className="text-3xl font-bold text-green-600">
-                {stats?.pannes_resolues || 0}
-              </div>
-            </div>
 
-            {/* MTTR */}
-            <div className="bg-white p-6 rounded-lg shadow">
-              <div className="text-sm text-gray-500 mb-2">MTTR Moyen</div>
-              <div className="text-3xl font-bold text-blue-600">
-                {stats?.mttr_hours?.toFixed(1) || 0}
-                <span className="text-lg ml-1">h</span>
+            {/* Pannes Table */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <PannesTable
+                  pannes={pannes}
+                  isLoading={isLoadingPannes}
+                  onRowClick={handleRowClick}
+                  selectedPanneId={selectedPanne?.id}
+                />
               </div>
+
+              {/* Detail Panel */}
+              {selectedPanne && (
+                <div className="bg-white rounded-lg shadow p-6 h-fit">
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="font-semibold text-gray-900">PANNE #{selectedPanne.id}</h3>
+                    <button
+                      onClick={() => setSelectedPanne(null)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Zone */}
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase">Zone</label>
+                      <p className="text-sm text-gray-900 mt-1">{selectedPanne.zone || '—'}</p>
+                    </div>
+
+                    {/* Type */}
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase">Type</label>
+                      <p className="text-sm text-gray-900 mt-1">{selectedPanne.type || '—'}</p>
+                    </div>
+
+                    {/* Équipement */}
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase">Équipement</label>
+                      <p className="text-sm text-gray-900 mt-1">{selectedPanne.materiel?.nom || '—'}</p>
+                    </div>
+
+                    {/* Début */}
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase">Début</label>
+                      <p className="text-sm text-gray-900 mt-1">
+                        {selectedPanne.date_panne || selectedPanne.date_debut
+                          ? new Date(selectedPanne.date_panne || selectedPanne.date_debut).toLocaleString('fr-FR')
+                          : '—'}
+                      </p>
+                    </div>
+
+                    {/* Statut */}
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase">Statut</label>
+                      <p className="text-sm mt-1">
+                        <span
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                            (selectedPanne.status || selectedPanne.statut || '').toLowerCase().includes('actif') ||
+                            (selectedPanne.status || selectedPanne.statut || '').toLowerCase().includes('en_cours')
+                              ? 'bg-orange-100 text-orange-800'
+                              : 'bg-green-100 text-green-800'
+                          }`}
+                        >
+                          {(selectedPanne.status || selectedPanne.statut || '').toLowerCase().includes('actif') ||
+                           (selectedPanne.status || selectedPanne.statut || '').toLowerCase().includes('en_cours')
+                            ? 'ACTIF' 
+                            : 'OK'}
+                        </span>
+                      </p>
+                    </div>
+
+                    {/* Responsable */}
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase">Responsable</label>
+                      <p className="text-sm text-gray-900 mt-1">{selectedPanne.pointeur?.nom || '—'}</p>
+                    </div>
+
+                    {/* Plan d'action */}
+                    {selectedPanne.plan_action && (
+                      <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Plan d'action</label>
+                        <p className="text-sm text-gray-900 mt-1">{selectedPanne.plan_action}</p>
+                      </div>
+                    )}
+
+                    <div className="pt-4 border-t">
+                      <button
+                        onClick={() => navigate(`/superviseur/pannes/${selectedPanne.id}`)}
+                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
+                      >
+                        Voir les détails
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -3,7 +3,12 @@ import axiosInstance from './axios.config';
 export const pannesAPI = {
   getAll: async (filters) => {
     const response = await axiosInstance.get('/pannes', { params: filters });
-    return response.data;
+    return response.data; // Returns paginated { data: [...], ... }
+  },
+
+  getMyPannes: async (filters) => {
+    const response = await axiosInstance.get('/my-pannes', { params: filters });
+    return response.data; // Returns paginated { data: [...], ... }
   },
 
   getById: async (id) => {

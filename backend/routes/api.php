@@ -50,6 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ── Superviseur-only ──────────────────────────────────────
     Route::middleware('superviseur')->group(function () {
         Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
+        Route::get('/pannes', [PanneController::class, 'index']);
 
         Route::get('/notifications/count', [NotificationController::class, 'count']);
         Route::get('/notifications', [NotificationController::class, 'index']);

@@ -8,7 +8,9 @@ import { ProtectedRoute } from './routes/ProtectedRoute';
 import LoginPage from './pages/auth/LoginPage';
 import PointeurDashboard from './pages/pointeur/DashboardPage';
 import CreatePannePage from './pages/pointeur/CreatePannePage';
+import PointeurPanneDetailPage from './pages/pointeur/PanneDetailPage';
 import SuperviseurDashboard from './pages/superviseur/DashboardPage';
+import SuperviseurPanneDetailPage from './pages/superviseur/PanneDetailPage';
 
 function App() {
   return (
@@ -35,6 +37,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/pointeur/pannes/:id"
+            element={
+              <ProtectedRoute allowedRole="pointeur">
+                <PointeurPanneDetailPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Superviseur Routes */}
           <Route
@@ -42,6 +52,14 @@ function App() {
             element={
               <ProtectedRoute allowedRole="superviseur">
                 <SuperviseurDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/superviseur/pannes/:id"
+            element={
+              <ProtectedRoute allowedRole="superviseur">
+                <SuperviseurPanneDetailPage />
               </ProtectedRoute>
             }
           />
