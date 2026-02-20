@@ -62,7 +62,7 @@ export default function FilterBar({
           >
             <option value="">Tous les équipements</option>
             {materiels.map((mat, index) => (
-              <option key={mat.id ?? index} value={mat.id}>
+              <option key={mat.matricule ?? index} value={mat.matricule}>
                 {mat.nom}
               </option>
             ))}
@@ -73,13 +73,13 @@ export default function FilterBar({
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Statut</label>
           <select
-            value={localFilters.statut || ''}
-            onChange={(e) => handleFilterChange('statut', e.target.value)}
+            value={localFilters.status || ''}
+            onChange={(e) => handleFilterChange('status', e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg form-select bg-white text-sm text-gray-900 hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           >
             <option value="">Tous les statuts</option>
-            <option value="ACTIF">En cours</option>
-            <option value="RÉSOLU">Résolues</option>
+            <option value="en_cours">En cours</option>
+            <option value="resolue">Résolues</option>
           </select>
         </div>
 

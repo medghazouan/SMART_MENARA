@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { pannesAPI } from '../../api/pannes.api';
 import { actionsAPI } from '../../api/actions.api';
-import ActionForm from '../../components/forms/ActionForm';
 import { format } from 'date-fns';
 
 export default function SuperviseurPanneDetailPage() {
@@ -13,9 +12,6 @@ export default function SuperviseurPanneDetailPage() {
   const [panne, setPanne] = useState(null);
   const [actions, setActions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showActionForm, setShowActionForm] = useState(false);
-  const [editingAction, setEditingAction] = useState(null);
-  const [isSubmittingAction, setIsSubmittingAction] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -36,44 +32,6 @@ export default function SuperviseurPanneDetailPage() {
       setError(error.message);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleAddAction = async (formData) => {
-    try {
-      setIsSubmittingAction(true);
-      await actionsAPI.create(id, formData);
-      setShowActionForm(false);
-      setEditingAction(null);
-      await loadPanneDetails();
-    } catch (error) {
-      console.error('Error adding action:', error);
-      setError(error.message);
-    } finally {
-      setIsSubmittingAction(false);
-    }
-  };
-
-  const handleDeleteAction = async (actionId) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette action ?')) return;
-    try {
-      await actionsAPI.delete(actionId);
-      await loadPanneDetails();
-    } catch (error) {
-      console.error('Error deleting action:', error);
-      setError(error.message);
-    }
-  };
-
-  const handleResolvePanne = async () => {
-    if (!window.confirm('Êtes-vous sûr de vouloir résoudre cette panne ?')) return;
-    try {
-      const date_fin = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
-      await pannesAPI.resolve(id, date_fin);
-      await loadPanneDetails();
-    } catch (error) {
-      console.error('Error resolving panne:', error);
-      setError(error.message);
     }
   };
 
@@ -159,14 +117,6 @@ export default function SuperviseurPanneDetailPage() {
             <div className="bg-white rounded-lg shadow p-6 mb-6">
               <div className="flex justify-between items-start mb-6">
                 <h2 className="text-lg font-semibold text-gray-900">Informations de la panne</h2>
-                {!isResolved && (
-                  <button
-                    onClick={handleResolvePanne}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition-colors"
-                  >
-                    Résoudre
-                  </button>
-                )}
               </div>
 
               <div className="grid grid-cols-2 gap-6">
@@ -256,26 +206,7 @@ export default function SuperviseurPanneDetailPage() {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-semibold text-gray-900">Actions ({actions.length})</h3>
-                {!showActionForm && !editingAction && (
-                  <button
-                    onClick={() => setShowActionForm(true)}
-                    className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
-                  >
-                    + Ajouter
-                  </button>
-                )}
               </div>
-
-              {showActionForm && (
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <h4 className="font-medium text-gray-900 mb-4">Nouvelle action</h4>
-                  <ActionForm
-                    onSubmit={handleAddAction}
-                    isLoading={isSubmittingAction}
-                    onCancel={() => setShowActionForm(false)}
-                  />
-                </div>
-              )}
 
               {actions.length === 0 ? (
                 <p className="text-sm text-gray-500">Aucune action enregistrée</p>
@@ -292,12 +223,6 @@ export default function SuperviseurPanneDetailPage() {
                             {action.date ? format(new Date(action.date), 'dd/MM/yyyy') : '—'}
                           </p>
                         </div>
-                        <button
-                          onClick={() => handleDeleteAction(action.id)}
-                          className="text-red-600 hover:text-red-800 text-sm font-medium"
-                        >
-                          Supprimer
-                        </button>
                       </div>
                       <p className="text-sm text-gray-700 mt-2">{action.intervention}</p>
                       {action.temps_estime && (

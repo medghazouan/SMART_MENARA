@@ -16,6 +16,7 @@ class Materiel extends Model
         'matricule',
         'nom',
         'categorie',
+        'compteur_init',
         'carriere_id',
     ];
 

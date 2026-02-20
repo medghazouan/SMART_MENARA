@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { dashboardAPI, pannesAPI } from '../../api/pannes.api';
+import { carrieresAPI } from '../../api/carrieres.api';
 import KPICard from '../../components/shared/KPICard';
 import PannesTable from '../../components/shared/PannesTable';
 import FilterBar from '../../components/shared/FilterBar';
@@ -12,6 +13,8 @@ export default function SuperviseurDashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [pannes, setPannes] = useState([]);
+  const [carrieres, setCarrieres] = useState([]);
+  const [selectedCarriereId, setSelectedCarriereId] = useState('');
   const [selectedPanne, setSelectedPanne] = useState(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [isLoadingPannes, setIsLoadingPannes] = useState(false);
@@ -20,32 +23,37 @@ export default function SuperviseurDashboard() {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
-    loadInitialData();
+    loadCarrieres();
   }, []);
 
   useEffect(() => {
+    loadStats();
     loadPannes();
-  }, [filters]);
+  }, [selectedCarriereId, filters]);
 
-  const loadInitialData = async () => {
+  const loadCarrieres = async () => {
     try {
-      // Load stats
-      const statsData = await dashboardAPI.getStats();
-      setStats(statsData);
-
-      // Load pannes to extract unique zones
-      const pannesResponse = await pannesAPI.getAll();
-      // Handle paginated response { data: [...], ... }
-      const pannesArray = Array.isArray(pannesResponse) ? pannesResponse : pannesResponse?.data || [];
-      
-      // Extract unique zones
-      const uniqueZones = [...new Set(pannesArray.map((p) => p.zone).filter(Boolean))];
-      setZones(uniqueZones);
-
-      setPannes(pannesArray);
-      console.log('Initial pannes loaded:', pannesArray);
+      const data = await carrieresAPI.getAll({
+        superviseur_id: user?.matricule,
+      });
+      const list = Array.isArray(data) ? data : data?.data || [];
+      setCarrieres(list);
     } catch (error) {
-      console.error('Error loading initial data:', error);
+      console.error('Error loading carrieres:', error);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      setIsLoadingStats(true);
+      const statsFilters = { ...filters };
+      if (selectedCarriereId) {
+        statsFilters.carriere_id = selectedCarriereId;
+      }
+      const statsData = await dashboardAPI.getStats(statsFilters);
+      setStats(statsData);
+    } catch (error) {
+      console.error('Error loading stats:', error);
     } finally {
       setIsLoadingStats(false);
     }
@@ -54,10 +62,16 @@ export default function SuperviseurDashboard() {
   const loadPannes = async () => {
     setIsLoadingPannes(true);
     try {
-      const response = await pannesAPI.getAll(filters);
-      // Handle paginated response { data: [...], ... }
+      const panneFilters = { ...filters };
+      if (selectedCarriereId) {
+        panneFilters.carriere_id = selectedCarriereId;
+      }
+      const response = await pannesAPI.getAll(panneFilters);
       const pannesArray = Array.isArray(response) ? response : response?.data || [];
       setPannes(pannesArray);
+
+      const uniqueZones = [...new Set(pannesArray.map((p) => p.zone).filter(Boolean))];
+      setZones(uniqueZones);
     } catch (error) {
       console.error('Error loading pannes:', error);
     } finally {
@@ -65,23 +79,15 @@ export default function SuperviseurDashboard() {
     }
   };
 
+  const handleCarriereChange = (carriereId) => {
+    setSelectedCarriereId(carriereId);
+    setSelectedPanne(null);
+    setFilters({});
+  };
+
   const handleRowClick = (panne) => {
     setSelectedPanne(panne);
     navigate(`/superviseur/pannes/${panne.id}`);
-  };
-
-  const calculateMTBF = (total, resolved) => {
-    if (resolved === 0) return 0;
-    return (total / resolved).toFixed(1);
-  };
-
-  const calculateDowntimePercentage = () => {
-    if (!stats?.total_pannes || stats.total_pannes === 0) return 0;
-    // Assuming average downtime is around 4-5 hours per incident
-    const avgDowntime = 4.5;
-    const totalDowntime = stats.pannes_en_cours * avgDowntime;
-    const percentage = (totalDowntime / (24 * 7)) * 100;
-    return percentage.toFixed(1);
   };
 
   return (
@@ -92,7 +98,6 @@ export default function SuperviseurDashboard() {
           <div className="flex justify-between h-16 items-center">
             <div>
               <h1 className="text-xl font-bold text-gray-900">SMART MENARA - Superviseur</h1>
-              <p className="text-xs text-gray-500 mt-0.5">Carrière Aïn Defla</p>
             </div>
             <div className="flex items-center space-x-6">
               <NotificationBell onNotificationChange={setUnreadNotifications} />
@@ -110,10 +115,29 @@ export default function SuperviseurDashboard() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Title */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">Tableau de Bord</h2>
-          <p className="text-sm text-gray-500 mt-1">Vue globale des pannes et performances</p>
+        {/* Page Title + Carriere Selector */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8 gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Tableau de Bord</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              {selectedCarriereId
+                ? `Carrière : ${carrieres.find((c) => String(c.id) === String(selectedCarriereId))?.nom || '—'}`
+                : 'Vue globale — Toutes vos carrières'}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Carrière</label>
+            <select
+              value={selectedCarriereId}
+              onChange={(e) => handleCarriereChange(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm text-gray-900 hover:border-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-[200px]"
+            >
+              <option value="">Toutes les carrières</option>
+              {carrieres.map((c) => (
+                <option key={c.id} value={c.id}>{c.nom}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* KPI Cards */}
@@ -125,7 +149,7 @@ export default function SuperviseurDashboard() {
               {/* MTBF */}
               <KPICard
                 label="MTBF"
-                value={calculateMTBF(stats?.total_pannes || 0, stats?.pannes_resolues || 1)}
+                value={(stats?.mtbf_hours || 0).toFixed(1)}
                 unit="h"
                 color="text-blue-600"
                 bgColor="bg-blue-50"
@@ -154,7 +178,7 @@ export default function SuperviseurDashboard() {
               {/* Aujourd'hui */}
               <KPICard
                 label="Aujourd'hui"
-                value={stats?.pannes_en_cours || 0}
+                value={stats?.pannes_today || 0}
                 color="text-purple-600"
                 bgColor="bg-purple-50"
                 subtext="Déclarées aujourd'hui"
@@ -163,7 +187,7 @@ export default function SuperviseurDashboard() {
               {/* Indisponibilité */}
               <KPICard
                 label="Indisponibilité"
-                value={calculateDowntimePercentage()}
+                value={stats?.indisponibilite_percent || 0}
                 unit="%"
                 color="text-red-600"
                 bgColor="bg-red-50"

@@ -77,6 +77,7 @@ class MaterielController extends Controller
         $validated = $request->validate([
             'nom' => 'sometimes|string|max:150',
             'categorie' => 'sometimes|string|max:100',
+            'compteur_init' => 'sometimes|integer|min:1',
             'carriere_id' => 'sometimes|exists:carrieres,id',
         ]);
 

@@ -17,10 +17,17 @@ export default function CreatePannePage() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
 
+  const now = new Date();
+  const localDate = now.toISOString().slice(0, 10);
+  const localTime = now.toTimeString().slice(0, 5);
+
   const [formData, setFormData] = useState({
     zone: '',
     type: '',
     materiel_id: '',
+    heures_compteur: '',
+    date_panne: localDate,
+    heure_panne: localTime,
     plan_action: '',
   });
 
@@ -57,12 +64,14 @@ export default function CreatePannePage() {
     setIsSubmitting(true);
 
     try {
+      const { date_panne, heure_panne, ...rest } = formData;
       await pannesAPI.create({
-        ...formData,
+        ...rest,
         pointeur_id: user.matricule,
         carriere_id: user.carriere_id,
-        date_panne: new Date().toISOString(),
+        date_panne: `${date_panne}T${heure_panne}:00`,
         materiel_id: parseInt(formData.materiel_id),
+        heures_compteur: formData.heures_compteur ? parseInt(formData.heures_compteur) : null,
       });
       
       setSuccess(true);
@@ -163,6 +172,38 @@ export default function CreatePannePage() {
               </p>
             </div>
 
+            {/* Date & Heure */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="date_panne" className="block text-sm font-medium text-gray-700 mb-2">
+                  Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  id="date_panne"
+                  name="date_panne"
+                  value={formData.date_panne}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label htmlFor="heure_panne" className="block text-sm font-medium text-gray-700 mb-2">
+                  Heure <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="time"
+                  id="heure_panne"
+                  name="heure_panne"
+                  value={formData.heure_panne}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
             {/* Matériel */}
             <div>
               <label htmlFor="materiel_id" className="block text-sm font-medium text-gray-700 mb-2">
@@ -194,6 +235,34 @@ export default function CreatePannePage() {
               </p>
             </div>
 
+            {/* Compteur Horaire */}
+            {(() => {
+              const selectedMat = materiels.find(m => String(m.matricule) === formData.materiel_id);
+              const initValue = selectedMat?.compteur_init;
+              return (
+                <div>
+                  <label htmlFor="heures_compteur" className="block text-sm font-medium text-gray-700 mb-2">
+                    Compteur horaire (h)
+                  </label>
+                  <input
+                    type="number"
+                    id="heures_compteur"
+                    name="heures_compteur"
+                    value={formData.heures_compteur}
+                    onChange={handleChange}
+                    min={initValue || 0}
+                    placeholder={initValue ? `Compteur init: ${initValue}h` : 'Sélectionnez un matériel d\'abord'}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <p className="mt-1 text-sm text-gray-500">
+                    {initValue
+                      ? `Relevez le compteur actuel (doit être ≥ ${initValue}h)`
+                      : 'Optionnel — Relevez le compteur horaire du matériel si disponible'}
+                  </p>
+                </div>
+              );
+            })()}
+
             {/* Plan d'Action */}
             <div>
               <label htmlFor="plan_action" className="block text-sm font-medium text-gray-700 mb-2">
@@ -213,21 +282,7 @@ export default function CreatePannePage() {
               </p>
             </div>
 
-            {/* Info Box */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-blue-700">
-                    <strong>Note:</strong> La date et l'heure actuelles seront automatiquement enregistrées lors de la déclaration.
-                  </p>
-                </div>
-              </div>
-            </div>
+           
 
             {/* Action Buttons */}
             <div className="flex space-x-4 pt-4">

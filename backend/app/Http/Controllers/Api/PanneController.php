@@ -27,6 +27,14 @@ class PanneController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('zone')) {
+            $query->where('zone', $request->zone);
+        }
+
+        if ($request->filled('materiel_id')) {
+            $query->where('materiel_id', $request->materiel_id);
+        }
+
         if ($request->filled('pointeur_id')) {
             $query->where('pointeur_id', $request->pointeur_id);
         }

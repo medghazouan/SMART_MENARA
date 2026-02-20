@@ -28,7 +28,7 @@ export default function PointeurPanneDetailPage() {
       setPanne(panneData);
 
       // Check if current user is the pointeur for this panne
-      if (panneData.pointeur_id !== user?.id) {
+      if (panneData.pointeur_id !== user?.matricule) {
         setError('Vous n\'avez pas accès à cette panne');
         return;
       }

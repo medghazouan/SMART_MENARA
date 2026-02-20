@@ -12,11 +12,11 @@ class CarriereController extends Controller
     {
         $query = Carriere::with(['superviseur', 'pointeurs', 'materiels']);
 
-        if ($request->has('superviseur_id')) {
+        if ($request->filled('superviseur_id')) {
             $query->where('superviseur_id', $request->superviseur_id);
         }
 
-        if ($request->has('region')) {
+        if ($request->filled('region')) {
             $query->where('region', $request->region);
         }
 

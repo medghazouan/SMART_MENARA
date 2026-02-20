@@ -49,7 +49,7 @@ export default function PannesTable({
     if (!dateString) return '—';
     try {
       const date = new Date(dateString);
-      return format(date, 'HH:mm', { locale: fr });
+      return format(date, 'dd/MM/yyyy HH:mm', { locale: fr });
     } catch {
       return '—';
     }
