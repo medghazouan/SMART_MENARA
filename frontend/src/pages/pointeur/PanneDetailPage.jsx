@@ -5,6 +5,13 @@ import { pannesAPI } from '../../api/pannes.api';
 import { actionsAPI } from '../../api/actions.api';
 import ActionForm from '../../components/forms/ActionForm';
 import { format } from 'date-fns';
+import menaraLogo from '../../assets/menaralogo.png';
+import {
+  LogOut, AlertTriangle, CheckCircle2, Eye, X, Plus, Trash2, MapPin, Wrench, Calendar,
+  LayoutDashboard, FilePlus, User,
+} from 'lucide-react';
+
+const TEAL = '#2D9F93';
 
 export default function PointeurPanneDetailPage() {
   const { id } = useParams();
@@ -93,10 +100,10 @@ export default function PointeurPanneDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#f5f6f8] flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin">
-            <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: TEAL }}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </div>
@@ -108,12 +115,13 @@ export default function PointeurPanneDetailPage() {
 
   if (!panne) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#f5f6f8] flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600 mb-4">Panne non trouvée</p>
           <button
             onClick={() => navigate('/pointeur')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-opacity"
+            style={{ background: TEAL }}
           >
             Retour au tableau de bord
           </button>
@@ -128,144 +136,148 @@ export default function PointeurPanneDetailPage() {
                     panne.statut?.toUpperCase().includes('OK');
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">PANNE #{panne.id}</h1>
-              <p className="text-xs text-gray-500 mt-0.5">Détails et gestion des interventions</p>
+    <div className="flex min-h-screen font-['Inter',system-ui,sans-serif] text-gray-700 bg-[#f5f6f8]">
+      {/* ── Sidebar ── */}
+      <aside className="w-65 shrink-0 flex flex-col justify-between bg-white border-r border-gray-100 shadow-sm">
+        {/* Top */}
+        <div>
+          {/* Logo */}
+          <div className="px-6 pt-7 pb-5 border-b border-gray-100">
+            <img src={menaraLogo} alt="Menara" className="h-10 w-auto mb-4" />
+            <div className="w-8 h-0.75 bg-[#c0392b] mb-3" />
+            <p className="text-[10px] font-semibold tracking-[0.14em] uppercase text-gray-400">Espace Pointeur</p>
+          </div>
+
+          {/* Nav */}
+          <nav className="px-3 pt-4 space-y-1">
+            <button onClick={() => navigate('/pointeur')} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+              <LayoutDashboard size={18} /> Tableau de bord
+            </button>
+            <button
+              onClick={() => navigate('/pointeur/pannes/create')}
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              <FilePlus size={18} /> Déclarer une panne
+            </button>
+          </nav>
+        </div>
+
+        {/* User + Logout */}
+        <div className="px-4 pb-6">
+          <div className="border-t border-gray-100 pt-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ background: TEAL }}>
+                {user?.nom?.charAt(0) || 'P'}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-800 truncate">{user?.nom}</p>
+                <p className="text-[11px] text-gray-400 truncate">{user?.email}</p>
+              </div>
             </div>
-            <div>
-              <button
-                onClick={() => navigate('/pointeur')}
-                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Retour
-              </button>
-            </div>
+            <button
+              onClick={() => { logout(); navigate('/login'); }}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <LogOut size={16} /> Déconnexion
+            </button>
           </div>
         </div>
-      </nav>
+      </aside>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* ── Main ── */}
+      <main className="flex-1 overflow-auto">
+        {/* Top bar */}
+        <header className="bg-white border-b border-gray-100 px-8 py-5 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Panne #{panne.id}</h1>
+            <p className="text-sm text-gray-400 mt-0.5">Détails et gestion des interventions</p>
+          </div>
+          <button
+            onClick={() => navigate('/pointeur')}
+            className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            ← Retour
+          </button>
+        </header>
+
+        {/* Main Content */}
+        <div className="px-8 py-6 space-y-6">
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-            {error}
+          <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <AlertTriangle size={18} /> {error}
           </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Information */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow p-6 mb-6">
-              <div className="flex justify-between items-start mb-6">
-                <h2 className="text-lg font-semibold text-gray-900">Détails de la panne</h2>
-                {!isResolved && (
-                  <button
-                    onClick={handleResolvePanne}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium transition-colors"
-                  >
-                    Résoudre
-                  </button>
-                )}
-              </div>
-
+          <div className="lg:col-span-2 space-y-6">
+            {/* Details Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-6 tracking-wide uppercase">Détails de la panne</h2>
               <div className="grid grid-cols-2 gap-6">
-                {/* Zone */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase">Zone</label>
-                  <p className="text-sm text-gray-900 mt-2">{panne.zone || '—'}</p>
-                </div>
+                <DetailRow icon={<MapPin size={15} />} label="Zone" value={panne.zone} />
+                <DetailRow icon={<Wrench size={15} />} label="Type" value={panne.type} />
+                <DetailRow icon={<Wrench size={15} />} label="Équipement" value={panne.materiel?.nom} />
+                <DetailRow icon={<Calendar size={15} />} label="Carrière" value={panne.carriere?.nom} />
+                <DetailRow icon={<Calendar size={15} />} label="Début" value={panne.date_panne || panne.date_debut ? format(new Date(panne.date_panne || panne.date_debut), 'dd/MM/yyyy HH:mm') : null} />
+                <DetailRow icon={<Calendar size={15} />} label="Fin" value={panne.date_fin ? format(new Date(panne.date_fin), 'dd/MM/yyyy HH:mm') : null} />
 
-                {/* Type */}
+                {/* Status Badge */}
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase">Type</label>
-                  <p className="text-sm text-gray-900 mt-2">{panne.type || '—'}</p>
-                </div>
-
-                {/* Équipement */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase">Équipement</label>
-                  <p className="text-sm text-gray-900 mt-2">{panne.materiel?.nom || '—'}</p>
-                </div>
-
-                {/* Carrière */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase">Carrière</label>
-                  <p className="text-sm text-gray-900 mt-2">{panne.carriere?.nom || '—'}</p>
-                </div>
-
-                {/* Début */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase">Début</label>
-                  <p className="text-sm text-gray-900 mt-2">
-                    {panne.date_panne || panne.date_debut ? format(new Date(panne.date_panne || panne.date_debut), 'dd/MM/yyyy HH:mm') : '—'}
-                  </p>
-                </div>
-
-                {/* Fin */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase">Fin</label>
-                  <p className="text-sm text-gray-900 mt-2">
-                    {panne.date_fin ? format(new Date(panne.date_fin), 'dd/MM/yyyy HH:mm') : '—'}
-                  </p>
-                </div>
-
-                {/* Durée */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase">Durée</label>
-                  <p className="text-sm text-gray-900 mt-2">{formatDuration()}</p>
-                </div>
-
-                {/* Statut */}
-                <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase">Statut</label>
-                  <div className="mt-2">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                      isResolved
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-orange-100 text-orange-800'
-                    }`}>
-                      {isResolved ? 'RÉSOLUE' : 'ACTIVE'}
-                    </span>
-                  </div>
+                  <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-400 mb-1">Statut</p>
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${isResolved ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}`}>
+                    {isResolved ? <><CheckCircle2 size={12} /> RÉSOLUE</> : <><AlertTriangle size={12} /> ACTIVE</>}
+                  </span>
                 </div>
 
                 {/* Description */}
-                <div className="col-span-2">
-                  <label className="text-xs font-semibold text-gray-500 uppercase">Description</label>
-                  <p className="text-sm text-gray-900 mt-2">{panne.description || '—'}</p>
-                </div>
+                {panne.description && (
+                  <div className="col-span-2">
+                    <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-400 mb-1">Description</p>
+                    <p className="text-sm text-gray-800">{panne.description}</p>
+                  </div>
+                )}
               </div>
+
+              {/* Action Button */}
+              {!isResolved && (
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <button
+                    onClick={handleResolvePanne}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-white rounded-lg hover:opacity-90 transition-opacity"
+                    style={{ background: TEAL }}
+                  >
+                    <CheckCircle2 size={16} /> Résoudre la panne
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Plan d'action */}
             {panne.plan_action && (
-              <div className="bg-white rounded-lg shadow p-6 mb-6">
-                <h3 className="font-semibold text-gray-900 mb-4">Plan d'action</h3>
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h3 className="text-base font-bold text-gray-900 mb-4 tracking-wide uppercase">Plan d'action</h3>
                 <p className="text-sm text-gray-700">{panne.plan_action}</p>
               </div>
             )}
 
             {/* Interventions */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-semibold text-gray-900">Interventions ({actions.length})</h3>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-base font-bold text-gray-900 tracking-wide uppercase">Interventions ({actions.length})</h3>
                 {!showActionForm && (
                   <button
                     onClick={() => setShowActionForm(true)}
-                    className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg hover:opacity-90 transition-opacity"
+                    style={{ background: TEAL }}
                   >
-                    + Ajouter
+                    <Plus size={16} /> Ajouter
                   </button>
                 )}
               </div>
 
               {showActionForm && (
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="mb-6 p-4 bg-teal-50 rounded-lg border border-teal-200">
                   <h4 className="font-medium text-gray-900 mb-4">Nouvelle intervention</h4>
                   <ActionForm
                     onSubmit={handleAddAction}
@@ -280,26 +292,31 @@ export default function PointeurPanneDetailPage() {
               ) : (
                 <div className="space-y-3">
                   {actions.map((action) => (
-                    <div key={action.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div key={action.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
                       <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-700 mb-1">
+                        <div className="flex-1">
+                          <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold mb-2 ${
+                            action.type === 'Preventive' ? 'bg-blue-100 text-blue-700' :
+                            action.type === 'Maintenance' ? 'bg-purple-100 text-purple-700' :
+                            'bg-orange-100 text-orange-700'
+                          }`}>
                             {action.type || 'Corrective'}
                           </span>
                           <p className="text-xs text-gray-500 mt-1">
-                            {action.date ? format(new Date(action.date), 'dd/MM/yyyy HH:mm') : '—'}
+                            {action.date ? format(new Date(action.date), 'dd/MM/yyyy') : '—'}
                           </p>
                         </div>
                         <button
                           onClick={() => handleDeleteAction(action.id)}
-                          className="text-red-600 hover:text-red-800 text-sm font-medium"
+                          className="text-red-600 hover:text-red-800 transition-colors flex items-center gap-1"
+                          title="Supprimer"
                         >
-                          Supprimer
+                          <Trash2 size={16} />
                         </button>
                       </div>
                       <p className="text-sm text-gray-700 mt-2">{action.intervention}</p>
                       {action.temps_estime && (
-                        <p className="text-xs text-gray-500 mt-2">Temps estimé: {action.temps_estime}h</p>
+                        <p className="text-xs text-gray-500 mt-2">⏱ {action.temps_estime}h</p>
                       )}
                     </div>
                   ))}
@@ -308,51 +325,61 @@ export default function PointeurPanneDetailPage() {
             </div>
           </div>
 
-          {/* Sidebar */}
+          {/* Right Sidebar */}
           <div>
-            <div className="bg-white rounded-lg shadow p-6 sticky top-4">
-              <h3 className="font-semibold text-gray-900 mb-4">Résumé</h3>
-              <div className="space-y-4">
-                {/* Status Badge */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sticky top-24">
+              <h3 className="text-base font-bold text-gray-900 mb-6 tracking-wide uppercase">Résumé</h3>
+              <div className="space-y-5">
+                {/* Status */}
                 <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold mb-2">Statut</p>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                    isResolved
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-orange-100 text-orange-800'
-                  }`}>
-                    {isResolved ? 'RÉSOLUE' : 'ACTIVE'}
+                  <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-400 mb-2">Statut</p>
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${isResolved ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}`}>
+                    {isResolved ? <><CheckCircle2 size={12} /> RÉSOLUE</> : <><AlertTriangle size={12} /> ACTIVE</>}
                   </span>
                 </div>
 
                 {/* Duration */}
-                <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold mb-2">Durée</p>
-                  <p className="text-lg font-bold text-gray-900">{formatDuration()}</p>
+                <div className="pt-4 border-t border-gray-100">
+                  <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-400 mb-1">Durée</p>
+                  <p className="text-xl font-bold text-gray-900">{formatDuration()}</p>
                 </div>
 
                 {/* Equipment */}
-                <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold mb-2">Équipement</p>
+                <div className="pt-4 border-t border-gray-100">
+                  <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-400 mb-1">Équipement</p>
                   <p className="text-sm text-gray-900">{panne.materiel?.nom || '—'}</p>
                 </div>
 
                 {/* Zone */}
-                <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold mb-2">Zone</p>
+                <div className="pt-4 border-t border-gray-100">
+                  <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-400 mb-1">Zone</p>
                   <p className="text-sm text-gray-900">{panne.zone || '—'}</p>
                 </div>
 
                 {/* Interventions Count */}
-                <div className="pt-4 border-t">
-                  <p className="text-xs text-gray-500 uppercase font-semibold mb-2">Total interventions</p>
-                  <p className="text-lg font-bold text-gray-900">{actions.length}</p>
+                <div className="pt-4 border-t border-gray-100">
+                  <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-400 mb-1">Total interventions</p>
+                  <p className="text-xl font-bold text-gray-900">{actions.length}</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+/* ── Helper components ── */
+
+function DetailRow({ icon, label, value }) {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-400 mb-1 flex items-center gap-1.5">
+        <span className="text-gray-300">{icon}</span> {label}
+      </p>
+      <p className="text-sm text-gray-800 pl-5.5">{value || '—'}</p>
     </div>
   );
 }

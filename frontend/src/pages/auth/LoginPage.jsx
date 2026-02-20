@@ -4,8 +4,6 @@ import { useAuth } from '../../context/AuthContext';
 import menaraLogo from '../../assets/menaralogo.png';
 import background2 from '../../assets/background2.jpeg';
 
-const TEAL = '#2D9F93';
-
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,7 +21,8 @@ export default function LoginPage() {
 
     try {
       await login({ email, password });
-      navigate('/superviseur');
+      const role = localStorage.getItem('userRole');
+      navigate(role === 'superviseur' ? '/superviseur' : '/pointeur');
     } catch (err) {
       setError(err.response?.data?.message || 'Échec de connexion');
     } finally {
@@ -32,51 +31,49 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={styles.page}>
-      {/* ───── Left sidebar ───── */}
-      <aside style={styles.sidebar}>
+    <div className="flex min-h-screen font-['Inter',system-ui,sans-serif] text-gray-700 bg-white">
+      {/* ── Left sidebar ── */}
+      <aside className="w-[280px] shrink-0 flex flex-col justify-between p-10 border-r border-gray-100 bg-[#fcfcfc]">
         <div>
-          <img src={menaraLogo} alt="Menara Préfa" style={styles.logo} />
-
-          <div style={styles.sidebarDivider} />
-
-          <p style={styles.sidebarLabel}>SYSTÈME</p>
-          <p style={styles.sidebarValue}>Gestion des Pannes — Carrière</p>
+          <img src={menaraLogo} alt="Menara Préfa" className="h-[52px] w-auto mb-7" />
+          <div className="w-10 h-[3px] bg-[#c0392b] mb-5" />
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-gray-400 mb-1">SYSTÈME</p>
+          <p className="text-[13px] text-gray-500">Gestion des Pannes — Carrière</p>
         </div>
-
         <div>
-          <p style={styles.sidebarLabel}>VERSION</p>
-          <p style={styles.sidebarValue}>v1.0.0 </p>
-
-          <p style={{ ...styles.sidebarLabel, marginTop: 16 }}>ENVIRONNEMENT</p>
-          <p style={styles.sidebarValue}>Production</p>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-gray-400 mb-1">VERSION</p>
+          <p className="text-[13px] text-gray-500">v1.0.0</p>
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase text-gray-400 mb-1 mt-4">ENVIRONNEMENT</p>
+          <p className="text-[13px] text-gray-500">Production</p>
         </div>
       </aside>
 
-      {/* ───── Main area ───── */}
-      <main style={styles.main}>
-        {/* Background image with opacity */}
-        <div style={{
-          ...styles.bgOverlay,
-          backgroundImage: `url(${background2})`,
-        }} />
-        <div style={styles.formWrapper}>
-          {/* Role label — Superviseur only */}
-          <div style={styles.roleLabel}>
-            SUPERVISEUR
-          </div>
+      {/* ── Main area ── */}
+      <main className="flex-1 flex items-center justify-center p-10 relative overflow-hidden">
+        {/* Background image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20 pointer-events-none"
+          style={{ backgroundImage: `url(${background2})` }}
+        />
 
-          {/* Form title */}
-          <p style={styles.formTitle}>CONNEXION SUPERVISEUR</p>
+        {/* Login card */}
+        <div className="w-full max-w-[440px] relative z-10 bg-white rounded-lg shadow-[0_2px_16px_rgba(0,0,0,0.08)] p-10">
+          <p className="text-[11px] font-semibold tracking-[0.14em] uppercase text-gray-400 mb-6">
+            CONNEXION AU SYSTÈME
+          </p>
 
-          <form onSubmit={handleSubmit} style={styles.form}>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             {error && (
-              <div style={styles.errorBox}>{error}</div>
+              <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded text-[13px]">
+                {error}
+              </div>
             )}
 
             {/* Email */}
             <div>
-              <label htmlFor="email" style={styles.label}>EMAIL</label>
+              <label htmlFor="email" className="block text-[10px] font-semibold tracking-[0.14em] uppercase text-gray-500 mb-2">
+                EMAIL
+              </label>
               <input
                 id="email"
                 type="email"
@@ -84,14 +81,16 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="votre.email@menara.ma"
-                style={styles.input}
+                className="w-full px-4 py-3.5 text-sm text-gray-700 bg-gray-100 border border-transparent rounded outline-none focus:border-[#2D9F93] transition-colors"
               />
             </div>
 
             {/* Password */}
             <div>
-              <label htmlFor="password" style={styles.label}>MOT DE PASSE</label>
-              <div style={styles.passwordWrapper}>
+              <label htmlFor="password" className="block text-[10px] font-semibold tracking-[0.14em] uppercase text-gray-500 mb-2">
+                MOT DE PASSE
+              </label>
+              <div className="relative">
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
@@ -99,23 +98,21 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="••••••"
-                  style={{ ...styles.input, paddingRight: 44 }}
+                  className="w-full px-4 py-3.5 pr-11 text-sm text-gray-700 bg-gray-100 border border-transparent rounded outline-none focus:border-[#2D9F93] transition-colors"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  style={styles.toggleBtn}
-                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label={showPassword ? 'Masquer' : 'Afficher'}
                 >
                   {showPassword ? (
-                    /* Eye-off icon */
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
                       <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
                       <line x1="1" y1="1" x2="23" y2="23" />
                     </svg>
                   ) : (
-                    /* Eye icon */
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                       <circle cx="12" cy="12" r="3" />
@@ -129,11 +126,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              style={{
-                ...styles.submitBtn,
-                opacity: isLoading ? 0.7 : 1,
-                cursor: isLoading ? 'not-allowed' : 'pointer',
-              }}
+              className="w-full py-3.5 mt-2 text-[13px] font-bold tracking-[0.12em] uppercase text-white bg-[#2D9F93] rounded cursor-pointer transition-opacity disabled:opacity-60 disabled:cursor-not-allowed hover:opacity-90"
             >
               {isLoading ? 'CONNEXION...' : 'ACCÉDER AU SYSTÈME'}
             </button>
@@ -143,184 +136,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-/* ────────────────────────── Inline styles ────────────────────────── */
-
-const styles = {
-  /* Page layout */
-  page: {
-    display: 'flex',
-    minHeight: '100vh',
-    fontFamily:
-      "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
-    color: '#333',
-    background: '#fff',
-  },
-
-  /* ── Sidebar ── */
-  sidebar: {
-    width: 280,
-    flexShrink: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    padding: '40px 32px',
-    borderRight: '1px solid #eee',
-    background: '#fcfcfc',
-  },
-  logo: {
-    height: 52,
-    width: 'auto',
-    marginBottom: 28,
-  },
-  sidebarDivider: {
-    width: 40,
-    height: 3,
-    background: '#c0392b',
-    marginBottom: 20,
-  },
-  sidebarLabel: {
-    fontSize: 10,
-    fontWeight: 600,
-    letterSpacing: '0.15em',
-    textTransform: 'uppercase',
-    color: '#999',
-    margin: '0 0 4px',
-  },
-  sidebarValue: {
-    fontSize: 13,
-    color: '#555',
-    margin: 0,
-    lineHeight: 1.5,
-  },
-
-  /* ── Main content ── */
-  main: {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '40px 24px',
-    background: '#fff',
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  bgOverlay: {
-    position: 'absolute',
-    inset: 0,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat',
-    opacity: 0.2,
-    pointerEvents: 'none',
-  },
-  formWrapper: {
-    width: '100%',
-    maxWidth: 440,
-    position: 'relative',
-    zIndex: 1,
-    background: '#fff',
-    padding: '40px 36px',
-    borderRadius: 8,
-    boxShadow: '0 2px 16px rgba(0,0,0,0.08)',
-  },
-
-  /* Role label */
-  roleLabel: {
-    fontSize: 13,
-    fontWeight: 700,
-    letterSpacing: '0.14em',
-    textTransform: 'uppercase',
-    color: TEAL,
-    borderBottom: `2px solid ${TEAL}`,
-    paddingBottom: 10,
-    marginBottom: 32,
-  },
-
-  /* Form title */
-  formTitle: {
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: '0.14em',
-    textTransform: 'uppercase',
-    color: '#888',
-    marginBottom: 24,
-  },
-
-  /* Form */
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 20,
-  },
-
-  /* Labels */
-  label: {
-    display: 'block',
-    fontSize: 10,
-    fontWeight: 600,
-    letterSpacing: '0.14em',
-    textTransform: 'uppercase',
-    color: '#777',
-    marginBottom: 8,
-  },
-
-  /* Inputs */
-  input: {
-    width: '100%',
-    padding: '14px 16px',
-    fontSize: 14,
-    color: '#333',
-    background: '#f2f2f2',
-    border: '1px solid transparent',
-    borderRadius: 4,
-    outline: 'none',
-    transition: 'border-color 0.2s',
-    boxSizing: 'border-box',
-  },
-
-  /* Password wrapper */
-  passwordWrapper: {
-    position: 'relative',
-  },
-  toggleBtn: {
-    position: 'absolute',
-    right: 12,
-    top: '50%',
-    transform: 'translateY(-50%)',
-    background: 'none',
-    border: 'none',
-    padding: 0,
-    cursor: 'pointer',
-    color: '#999',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  /* Error */
-  errorBox: {
-    background: '#fef2f2',
-    border: '1px solid #fca5a5',
-    color: '#b91c1c',
-    padding: '12px 16px',
-    borderRadius: 4,
-    fontSize: 13,
-  },
-
-  /* Submit button */
-  submitBtn: {
-    width: '100%',
-    padding: '15px 0',
-    fontSize: 13,
-    fontWeight: 700,
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
-    color: '#fff',
-    background: TEAL,
-    border: 'none',
-    borderRadius: 4,
-    marginTop: 8,
-    transition: 'opacity 0.2s',
-  },
-};
