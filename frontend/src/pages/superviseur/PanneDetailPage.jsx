@@ -5,8 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { pannesAPI } from '../../api/pannes.api';
 import { actionsAPI } from '../../api/actions.api';
 import { format } from 'date-fns';
-import menaraLogo from '../../assets/menaralogo.png';
-import NotificationBell from '../../components/shared/NotificationBell';
+import SuperviseurNav from '../../components/shared/SuperviseurNav';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const COLORS = {
@@ -215,69 +214,8 @@ export default function SuperviseurPanneDetailPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       
       {/* ── NAVIGATION ─────────────────────────────────────────────────── */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-[1600px] mx-auto px-8">
-          <div className="h-16 flex items-center justify-between">
-            
-            {/* Brand & Title */}
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-4">
-                <img 
-                  src={menaraLogo} 
-                  alt="Menara Préfa" 
-                  className="h-10 w-auto"
-                />
-                <div className="w-px h-7 bg-gray-200" />
-                <div>
-                  <p className="text-xs font-bold tracking-[0.14em] text-teal-600 leading-tight">
-                    SMART MENARA
-                  </p>
-                  <p className="text-[10px] text-gray-400 tracking-wider">
-                    GESTION DES PANNES
-                  </p>
-                </div>
-              </div>
-              
-              <div className="w-px h-8 bg-gray-200" />
-              
-              <div>
-                <p className="text-[10px] font-bold tracking-[0.14em] uppercase text-gray-400">
-                  Détail Panne
-                </p>
-                <h1 className="text-lg font-extrabold text-gray-900">
-                  #{panne.id}
-                </h1>
-              </div>
-            </div>
+      <SuperviseurNav data={{ user, logout }} />
 
-            {/* Right Section */}
-            <div className="flex items-center gap-5">
-              <NotificationBell />
-              
-              <div className="w-px h-6 bg-gray-200" />
-              
-              <div className="text-right">
-                <p className="text-sm font-semibold text-gray-800">
-                  {user?.nom}
-                </p>
-                <p className="text-[10px] text-gray-400 uppercase tracking-wider">
-                  Superviseur
-                </p>
-              </div>
-              
-              <button
-                onClick={() => navigate('/superviseur')}
-                className="px-5 py-2 text-xs font-bold tracking-wider uppercase
-                  text-gray-600 bg-white border border-gray-300 rounded-lg
-                  hover:bg-gray-50 hover:border-gray-400 transition-all duration-200
-                  active:scale-95"
-              >
-                Retour
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
 
       {/* ── MAIN CONTENT ───────────────────────────────────────────────── */}
       <div className="max-w-[1600px] mx-auto px-8 py-8">

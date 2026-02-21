@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { dashboardAPI, pannesAPI } from '../../api/pannes.api';
 import { carrieresAPI } from '../../api/carrieres.api';
-import NotificationBell from '../../components/shared/NotificationBell';
-import menaraLogo from '../../assets/menaralogo.png';
+import SuperviseurNav from '../../components/shared/SuperviseurNav';
+import FilterBar from '../../components/shared/FilterBar';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -132,12 +132,13 @@ export default function SuperviseurDashboard() {
   const [isLoadingPannes, setIsLoadingPannes] = useState(false);
   const [filters, setFilters] = useState({});
   const [zones, setZones] = useState([]);
-  const [statusFilter, setStatusFilter] = useState('');
-  const [zoneFilter, setZoneFilter] = useState('');
 
   // Effects
   useEffect(() => { loadCarrieres(); }, []);
-  useEffect(() => { loadStats(); loadPannes(); }, [selectedCarriereId, filters]);
+  useEffect(() => { 
+    loadStats(); 
+    loadPannes(); 
+  }, [selectedCarriereId]);
 
   // API calls
   const loadCarrieres = async () => {
@@ -152,7 +153,7 @@ export default function SuperviseurDashboard() {
   const loadStats = async () => {
     try {
       setIsLoadingStats(true);
-      const f = { ...filters };
+      const f = {};
       if (selectedCarriereId) f.carriere_id = selectedCarriereId;
       const data = await dashboardAPI.getStats(f);
       setStats(data);
@@ -166,12 +167,15 @@ export default function SuperviseurDashboard() {
   const loadPannes = async () => {
     setIsLoadingPannes(true);
     try {
-      const f = { ...filters };
+      const f = {};
       if (selectedCarriereId) f.carriere_id = selectedCarriereId;
       const res = await pannesAPI.getAll(f);
       const arr = Array.isArray(res) ? res : res?.data || [];
       setPannes(arr);
-      setZones([...new Set(arr.map(p => p.zone).filter(Boolean))]);
+      
+      // Extract unique zones
+      const uniqueZones = [...new Set(arr.map(p => p.zone).filter(Boolean))];
+      setZones(uniqueZones);
     } catch (e) {
       console.error('Error loading pannes:', e);
     } finally {
@@ -181,31 +185,61 @@ export default function SuperviseurDashboard() {
 
   // ── Derived Data ───────────────────────────────────────────────────────
 
-  /** Status distribution for donut chart */
+  /** Filtered table data - Applied client-side */
+  const filteredPannes = useMemo(() => {
+    return pannes.filter(p => {
+      // Zone filter
+      if (filters.zone && p.zone !== filters.zone) {
+        return false;
+      }
+
+      // Equipment filter
+      if (filters.materiel_id) {
+        const materielId = p.materiel?.matricule || p.materiel?.id || p.materiel_id;
+        if (String(materielId) !== String(filters.materiel_id)) {
+          return false;
+        }
+      }
+
+      // Status filter
+      if (filters.status) {
+        const active = isActive(p.status || p.statut || '');
+        if (filters.status === 'en_cours' || filters.status === 'actif') {
+          if (!active) return false;
+        } else if (filters.status === 'resolue' || filters.status === 'resolu') {
+          if (active) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [pannes, filters]);
+
+  /** Status distribution for donut chart - Based on filtered data */
   const statusData = useMemo(() => {
-    const actif = pannes.filter(p => isActive(p.status || p.statut || '')).length;
+    const actif = filteredPannes.filter(p => isActive(p.status || p.statut || '')).length;
     return [
       { name: 'ACTIF', value: actif, color: COLORS.warning },
-      { name: 'RÉSOLU', value: pannes.length - actif, color: COLORS.primary },
+      { name: 'RÉSOLU', value: filteredPannes.length - actif, color: COLORS.primary },
     ];
-  }, [pannes]);
+  }, [filteredPannes]);
 
-  /** Pannes by zone for bar chart */
+  /** Pannes by zone for bar chart - Based on filtered data */
   const zoneData = useMemo(() => {
     const map = {};
-    pannes.forEach(p => {
+    filteredPannes.forEach(p => {
       if (p.zone) map[p.zone] = (map[p.zone] || 0) + 1;
     });
     return Object.entries(map)
       .map(([zone, total]) => ({ zone, total }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 8);
-  }, [pannes]);
+  }, [filteredPannes]);
 
-  /** Trend data for line chart */
+  /** Trend data for line chart - Based on filtered data */
   const trendData = useMemo(() => {
     const map = {};
-    pannes.forEach(p => {
+    filteredPannes.forEach(p => {
       const raw = p.date_panne || p.date_debut;
       if (raw) {
         const key = new Date(raw).toLocaleDateString('fr-FR', { 
@@ -218,20 +252,7 @@ export default function SuperviseurDashboard() {
     return Object.entries(map)
       .map(([date, count]) => ({ date, count }))
       .slice(-14);
-  }, [pannes]);
-
-  /** Filtered table data */
-  const filteredPannes = useMemo(() => {
-    return pannes.filter(p => {
-      const active = isActive(p.status || p.statut || '');
-      const okStatus =
-        !statusFilter ||
-        (statusFilter === 'actif' && active) ||
-        (statusFilter === 'resolu' && !active);
-      const okZone = !zoneFilter || p.zone === zoneFilter;
-      return okStatus && okZone;
-    });
-  }, [pannes, statusFilter, zoneFilter]);
+  }, [filteredPannes]);
 
   // Helpers
   const carriereName = carrieres.find(c => String(c.id) === String(selectedCarriereId))?.nom;
@@ -241,9 +262,9 @@ export default function SuperviseurDashboard() {
     navigate(`/superviseur/pannes/${panne.id}`);
   };
 
-  const clearFilters = () => {
-    setStatusFilter('');
-    setZoneFilter('');
+  const handleFilterChange = (newFilters) => {
+    setFilters(newFilters);
+    setSelectedPanne(null); // Clear selection when filters change
   };
 
   // Chart tooltip style
@@ -268,56 +289,7 @@ export default function SuperviseurDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       
       {/* ── NAVIGATION ─────────────────────────────────────────────────── */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-[1600px] mx-auto px-8">
-          <div className="h-16 flex items-center justify-between">
-            
-            {/* Brand */}
-            <div className="flex items-center gap-4">
-              <img 
-                src={menaraLogo} 
-                alt="Menara Préfa" 
-                className="h-10 w-auto"
-              />
-              <div className="w-px h-7 bg-gray-200" />
-              <div>
-                <p className="text-xs font-bold tracking-[0.14em] text-teal-600 leading-tight">
-                  SMART MENARA
-                </p>
-                <p className="text-[10px] text-gray-400 tracking-wider">
-                  GESTION DES PANNES
-                </p>
-              </div>
-            </div>
-
-            {/* Right section */}
-            <div className="flex items-center gap-5">
-              <NotificationBell />
-              
-              <div className="w-px h-6 bg-gray-200" />
-              
-              <div className="text-right">
-                <p className="text-sm font-semibold text-gray-800">
-                  {user?.nom}
-                </p>
-                <p className="text-[10px] text-gray-400 uppercase tracking-wider">
-                  Superviseur
-                </p>
-              </div>
-              
-              <button
-                onClick={logout}
-                className="px-5 py-2 text-xs font-bold tracking-wider uppercase
-                  text-gray-600 bg-white border border-gray-300 rounded-lg
-                  hover:bg-gray-50 hover:border-gray-400 transition-all duration-200
-                  active:scale-95"
-              >
-                Déconnexion
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <SuperviseurNav data={{ user, logout }} />
 
       {/* ── MAIN CONTENT ───────────────────────────────────────────────── */}
       <div className="max-w-[1600px] mx-auto px-8 py-8">
@@ -525,55 +497,18 @@ export default function SuperviseurDashboard() {
             </div>
 
             {/* ── Filter Bar ─────────────────────────────────────────── */}
-            <Card className="p-4 mb-5">
-              <div className="flex items-center gap-5 flex-wrap">
-                <span className="text-[10px] font-bold tracking-[0.14em] uppercase text-gray-400">
-                  Filtres
-                </span>
+            <FilterBar
+              filters={filters}
+              zones={zones}
+              onFilterChange={handleFilterChange}
+            />
 
-                <select
-                  value={statusFilter}
-                  onChange={e => setStatusFilter(e.target.value)}
-                  className="px-4 py-2 text-sm text-gray-700 bg-gray-50 border border-gray-200 
-                    rounded-lg outline-none cursor-pointer hover:border-gray-300 
-                    focus:border-teal-500 focus:ring-2 focus:ring-teal-200 transition-all min-w-[180px]"
-                >
-                  <option value="">Tous les statuts</option>
-                  <option value="actif">Actif</option>
-                  <option value="resolu">Résolu</option>
-                </select>
-
-                <select
-                  value={zoneFilter}
-                  onChange={e => setZoneFilter(e.target.value)}
-                  className="px-4 py-2 text-sm text-gray-700 bg-gray-50 border border-gray-200 
-                    rounded-lg outline-none cursor-pointer hover:border-gray-300 
-                    focus:border-teal-500 focus:ring-2 focus:ring-teal-200 transition-all min-w-[180px]"
-                >
-                  <option value="">Toutes les zones</option>
-                  {zones.map(z => (
-                    <option key={z} value={z}>{z}</option>
-                  ))}
-                </select>
-
-                {(statusFilter || zoneFilter) && (
-                  <button
-                    onClick={clearFilters}
-                    className="text-xs font-semibold text-red-600 hover:text-red-700 
-                      transition-colors flex items-center gap-1"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    Réinitialiser
-                  </button>
-                )}
-
-                <span className="ml-auto text-sm text-gray-400">
-                  {filteredPannes.length} résultat{filteredPannes.length !== 1 ? 's' : ''}
-                </span>
-              </div>
-            </Card>
+            {/* Results count */}
+            <div className="flex justify-end mb-4">
+              <span className="text-sm text-gray-400">
+                {filteredPannes.length} résultat{filteredPannes.length !== 1 ? 's' : ''}
+              </span>
+            </div>
 
             {/* ── Table + Detail Panel ───────────────────────────────── */}
             <div className={`grid gap-5 ${selectedPanne ? 'lg:grid-cols-[1fr_380px]' : 'grid-cols-1'}`}>
