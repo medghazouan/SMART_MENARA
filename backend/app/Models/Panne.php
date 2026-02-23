@@ -16,6 +16,7 @@ class Panne extends Model
         'date_fin',
         'status',
         'plan_action',
+        'heures_compteur',
         'pointeur_id',
         'carriere_id',
         'materiel_id',

@@ -13,14 +13,14 @@ class ActionController extends Controller
     {
         $query = Action::with('panne');
 
-        if ($request->has('panne_id')) {
+        if ($request->filled('panne_id')) {
             $query->where('panne_id', $request->panne_id);
         }
 
-        if ($request->has('date_from')) {
+        if ($request->filled('date_from')) {
             $query->where('date', '>=', $request->date_from);
         }
-        if ($request->has('date_to')) {
+        if ($request->filled('date_to')) {
             $query->where('date', '<=', $request->date_to);
         }
 
@@ -32,8 +32,6 @@ class ActionController extends Controller
     public function store(StoreActionRequest $request)
     {
         $validated = $request->validated();
-        $validated['panne_id'] = $request->input('panne_id');
-
         $action = Action::create($validated);
 
         return response()->json([
@@ -54,7 +52,9 @@ class ActionController extends Controller
 
         $validated = $request->validate([
             'date' => 'sometimes|date',
+            'type' => 'sometimes|string|in:Corrective,Preventive,Maintenance',
             'intervention' => 'sometimes|string',
+            'temps_estime' => 'sometimes|nullable|numeric|min:0',
         ]);
 
         $action->update($validated);

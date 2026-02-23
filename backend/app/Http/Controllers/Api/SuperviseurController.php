@@ -27,7 +27,6 @@ class SuperviseurController extends Controller
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
-
         $superviseur = Superviseur::create($validated);
 
         return response()->json([
@@ -44,6 +43,12 @@ class SuperviseurController extends Controller
 
     public function update(Request $request, string $id)
     {
+        if ((int) $id !== $request->user()->matricule) {
+            return response()->json([
+                'message' => 'Vous ne pouvez modifier que votre propre compte.'
+            ], 403);
+        }
+
         $superviseur = Superviseur::findOrFail($id);
 
         $validated = $request->validate([
@@ -68,11 +73,8 @@ class SuperviseurController extends Controller
 
     public function destroy(string $id)
     {
-        $superviseur = Superviseur::findOrFail($id);
-        $superviseur->delete();
-
         return response()->json([
-            'message' => 'Superviseur supprimé avec succès'
-        ]);
+            'message' => 'La suppression de comptes superviseur n\'est pas autorisée.'
+        ], 403);
     }
 }

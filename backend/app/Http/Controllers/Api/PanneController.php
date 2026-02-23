@@ -14,20 +14,56 @@ class PanneController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Panne::with(['pointeur', 'carriere', 'materiel', 'actions']);
+        $carriereIds = $request->user()->carrieres()->pluck('id');
 
-        if ($request->has('carriere_id')) {
+        $query = Panne::with(['pointeur', 'carriere', 'materiel', 'actions'])
+            ->whereIn('carriere_id', $carriereIds);
+
+        if ($request->filled('carriere_id')) {
             $query->where('carriere_id', $request->carriere_id);
         }
 
-        if ($request->has('status')) {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        if ($request->has('date_from')) {
+        if ($request->filled('zone')) {
+            $query->where('zone', $request->zone);
+        }
+
+        if ($request->filled('materiel_id')) {
+            $query->where('materiel_id', $request->materiel_id);
+        }
+
+        if ($request->filled('pointeur_id')) {
+            $query->where('pointeur_id', $request->pointeur_id);
+        }
+
+        if ($request->filled('date_from')) {
             $query->where('date_panne', '>=', $request->date_from);
         }
-        if ($request->has('date_to')) {
+        if ($request->filled('date_to')) {
+            $query->where('date_panne', '<=', $request->date_to);
+        }
+
+        $pannes = $query->orderBy('date_panne', 'desc')->paginate(20);
+
+        return response()->json($pannes);
+    }
+
+    public function myPannes(Request $request)
+    {
+        $query = Panne::with(['carriere', 'materiel', 'actions'])
+            ->where('pointeur_id', $request->user()->matricule);
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->where('date_panne', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
             $query->where('date_panne', '<=', $request->date_to);
         }
 
@@ -92,7 +128,7 @@ class PanneController extends Controller
         $panne = Panne::findOrFail($id);
 
         $user = $request->user();
-        if ($panne->pointeur_id !== $user->matricule) {
+        if ((int) $panne->pointeur_id !== (int) $user->matricule) {
             return response()->json([
                 'message' => 'Vous n\'êtes pas autorisé à résoudre cette panne.'
             ], 403);

@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
     {
         // ── Superviseurs ──────────────────────────────────────
         $sup1 = Superviseur::create([
-            'matricule' => 1001,
+            'matricule' => 1009,
             'nom' => 'Ahmed Benali',
             'email' => 'ahmed.benali@menara.ma',
             'phone' => '+212600000001',
@@ -40,18 +40,20 @@ class DatabaseSeeder extends Seeder
         $carriereJbilat = Carriere::create([
             'nom' => 'JBILAT',
             'region' => 'Marrakech',
+            'heures_par_jour' => 10.0,
             'superviseur_id' => $sup1->matricule,
         ]);
 
         $carriereBenAhmed = Carriere::create([
             'nom' => 'BEN AHMED',
             'region' => 'Casablanca',
+            'heures_par_jour' => 10.0,
             'superviseur_id' => $sup2->matricule,
         ]);
 
         // ── Pointeurs ─────────────────────────────────────────
         $pointeur1 = Pointeur::create([
-            'matricule' => 2001,
+            'matricule' => 2009,
             'nom' => 'Mohamed El Amrani',
             'email' => 'mohamed.amrani@menara.ma',
             'phone' => '+212600000002',
@@ -70,9 +72,10 @@ class DatabaseSeeder extends Seeder
 
         // ── Matériels ─────────────────────────────────────────
         $mat1 = Materiel::create([
-            'matricule' => 3001,
+            'matricule' => 3009,
             'nom' => 'Bande TR200',
             'categorie' => 'Convoyeur',
+            'compteur_init' => 203,
             'carriere_id' => $carriereJbilat->id,
         ]);
 
@@ -80,6 +83,7 @@ class DatabaseSeeder extends Seeder
             'matricule' => 3002,
             'nom' => 'VOLVO 220',
             'categorie' => 'Camion',
+            'compteur_init' => 20500,
             'carriere_id' => $carriereJbilat->id,
         ]);
 
@@ -87,6 +91,7 @@ class DatabaseSeeder extends Seeder
             'matricule' => 3003,
             'nom' => 'CAT 349DL',
             'categorie' => 'Pelle',
+            'compteur_init' => 36000,
             'carriere_id' => $carriereJbilat->id,
         ]);
 
@@ -94,6 +99,7 @@ class DatabaseSeeder extends Seeder
             'matricule' => 3004,
             'nom' => 'Broyeur BK-500',
             'categorie' => 'Broyeur',
+            'compteur_init' => 1500,
             'carriere_id' => $carriereJbilat->id,
         ]);
 
@@ -101,6 +107,7 @@ class DatabaseSeeder extends Seeder
             'matricule' => 3005,
             'nom' => 'Concasseur CR-800',
             'categorie' => 'Concasseur',
+            'compteur_init' => 1300,
             'carriere_id' => $carriereBenAhmed->id,
         ]);
 
@@ -108,10 +115,23 @@ class DatabaseSeeder extends Seeder
             'matricule' => 3006,
             'nom' => 'Chargeuse Komatsu WA380',
             'categorie' => 'Chargeuse',
+            'compteur_init' => 18900,
             'carriere_id' => $carriereBenAhmed->id,
         ]);
 
         // ── Pannes (mix of resolved and ongoing) ──────────────
+        $panne0a = Panne::create([
+            'zone' => 'Zone A',
+            'type' => 'Mécanique',
+            'date_panne' => Carbon::now()->subDays(30),
+            'date_fin' => Carbon::now()->subDays(28),
+            'status' => 'resolue',
+            'plan_action' => 'Réalignement courroie',
+            'pointeur_id' => $pointeur1->matricule,
+            'carriere_id' => $carriereJbilat->id,
+            'materiel_id' => $mat1->matricule,
+        ]);
+
         $panne1 = Panne::create([
             'zone' => 'Zone A',
             'type' => 'Mécanique',
@@ -134,6 +154,18 @@ class DatabaseSeeder extends Seeder
             'pointeur_id' => $pointeur1->matricule,
             'carriere_id' => $carriereJbilat->id,
             'materiel_id' => $mat2->matricule,
+        ]);
+
+        $panne0b = Panne::create([
+            'zone' => 'Zone A',
+            'type' => 'Hydraulique',
+            'date_panne' => Carbon::now()->subDays(35),
+            'date_fin' => Carbon::now()->subDays(33),
+            'status' => 'resolue',
+            'plan_action' => 'Remplacement joint vérin',
+            'pointeur_id' => $pointeur1->matricule,
+            'carriere_id' => $carriereJbilat->id,
+            'materiel_id' => $mat3->matricule,
         ]);
 
         $panne3 = Panne::create([

@@ -12,6 +12,7 @@ class Carriere extends Model
     protected $fillable = [
         'nom',
         'region',
+        'heures_par_jour',
         'superviseur_id',
     ];
 

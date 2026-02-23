@@ -8,20 +8,15 @@ use Illuminate\Http\Request;
 
 class CarriereController extends Controller
 {
-    /**
-     * Display a listing of carrieres
-     */
     public function index(Request $request)
     {
         $query = Carriere::with(['superviseur', 'pointeurs', 'materiels']);
 
-        // Filter by superviseur if provided
-        if ($request->has('superviseur_id')) {
+        if ($request->filled('superviseur_id')) {
             $query->where('superviseur_id', $request->superviseur_id);
         }
 
-        // Filter by region
-        if ($request->has('region')) {
+        if ($request->filled('region')) {
             $query->where('region', $request->region);
         }
 
@@ -30,16 +25,14 @@ class CarriereController extends Controller
         return response()->json($carrieres);
     }
 
-    /**
-     * Store a newly created carriere
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
             'nom' => 'required|string|max:100',
             'region' => 'nullable|string|max:100',
-            'superviseur_id' => 'required|exists:superviseurs,matricule',
         ]);
+
+        $validated['superviseur_id'] = $request->user()->matricule;
 
         $carriere = Carriere::create($validated);
 
@@ -49,16 +42,13 @@ class CarriereController extends Controller
         ], 201);
     }
 
-    /**
-     * Display the specified carriere
-     */
     public function show($id)
     {
         $carriere = Carriere::with([
             'superviseur',
             'pointeurs',
             'materiels',
-            'pannes' => function($query) {
+            'pannes' => function ($query) {
                 $query->latest()->limit(10);
             }
         ])->findOrFail($id);
@@ -66,17 +56,19 @@ class CarriereController extends Controller
         return response()->json($carriere);
     }
 
-    /**
-     * Update the specified carriere
-     */
     public function update(Request $request, $id)
     {
         $carriere = Carriere::findOrFail($id);
 
+        if ($carriere->superviseur_id !== $request->user()->matricule) {
+            return response()->json([
+                'message' => 'Cette carrière ne vous appartient pas.'
+            ], 403);
+        }
+
         $validated = $request->validate([
             'nom' => 'sometimes|string|max:100',
             'region' => 'nullable|string|max:100',
-            'superviseur_id' => 'sometimes|exists:superviseurs,matricule',
         ]);
 
         $carriere->update($validated);
@@ -87,12 +79,16 @@ class CarriereController extends Controller
         ]);
     }
 
-    /**
-     * Remove the specified carriere
-     */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $carriere = Carriere::findOrFail($id);
+
+        if ($carriere->superviseur_id !== $request->user()->matricule) {
+            return response()->json([
+                'message' => 'Cette carrière ne vous appartient pas.'
+            ], 403);
+        }
+
         $carriere->delete();
 
         return response()->json([
